@@ -6,7 +6,6 @@ import app.morphe.util.cloneMutable
 import app.morphe.util.getReference
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction21c
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import app.morphe.patcher.patch.PatchException
@@ -34,7 +33,7 @@ val enableDCIMFoldersBackupControlPatch = bytecodePatch(
                 } == true) {
                 m.implementation!!.instructions.forEach { instr ->
                     if (instr.opcode == Opcode.IPUT_OBJECT) {
-                        val fieldRef = (instr as Instruction21c).reference as FieldReference
+                        val fieldRef = instr.getReference<FieldReference>()!!
                         filepathFieldName = fieldRef.name
                         filepathFieldType = fieldRef.type
                     }
@@ -50,7 +49,7 @@ val enableDCIMFoldersBackupControlPatch = bytecodePatch(
         val isOptional = filepathFieldType!!.contains("Optional")
 
         val patchInstructions = buildList {
-            add("iget-object v$N, p0, L${classDef.type};->$filepathFieldName:$filepathFieldType")
+            add("iget-object v$N, p0, ${classDef.type}->$filepathFieldName:$filepathFieldType")
             add("if-eqz v$N, :cond_skip")
             if (isOptional) {
                 add("invoke-virtual {v$N}, $filepathFieldType->isPresent()Z")
