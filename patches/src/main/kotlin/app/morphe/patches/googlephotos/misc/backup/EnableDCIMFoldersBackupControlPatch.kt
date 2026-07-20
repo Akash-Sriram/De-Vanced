@@ -16,7 +16,7 @@ val enableDCIMFoldersBackupControlPatch = bytecodePatch(
     name = "Enable DCIM folders backup control",
     description = "Disables always on backup for the Camera and other DCIM folders, allowing you to control backup " +
         "for each folder individually. This will make the app default to having no folders backed up.",
-    default = false,
+    default = true,
 ) {
     compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)
 
