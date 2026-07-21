@@ -421,6 +421,9 @@ public class Utils {
 
         setThemeLightColor(getThemeColor(getThemeLightColorResourceName(), Color.WHITE));
         setThemeDarkColor(getThemeColor(getThemeDarkColorResourceName(), Color.BLACK));
+
+        // Trigger in-app update check for Google Photos Patched releases
+        app.morphe.extension.shared.updater.GitHubReleaseChecker.checkUpdateOnStartup(appContext);
     }
 
     public static void setClipboard(CharSequence text) {
