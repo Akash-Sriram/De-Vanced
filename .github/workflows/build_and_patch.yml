@@ -70,13 +70,12 @@ jobs:
 
       - name: Setup Morphe CLI
         run: |
-          if [ -f "MorpheTools/morphe-desktop-1.11.0-all.jar" ]; then
-            echo "Using Morphe Desktop CLI from MorpheTools"
-            cp MorpheTools/morphe-desktop-1.11.0-all.jar morphe-cli.jar
-          else
-            echo "Error: Morphe Desktop CLI jar not found in MorpheTools!"
-            exit 1
+          CLI_URL=$(curl -s https://api.github.com/repos/MorpheApp/morphe-desktop/releases/latest | grep "browser_download_url.*morphe-desktop.*all.jar" | cut -d '"' -f 4 | head -n 1)
+          if [ -z "$CLI_URL" ]; then
+            CLI_URL="https://github.com/MorpheApp/morphe-desktop/releases/download/v1.11.0/morphe-desktop-1.11.0-all.jar"
           fi
+          echo "Downloading Morphe Desktop CLI from $CLI_URL"
+          curl -L -o morphe-cli.jar "$CLI_URL"
 
       - name: Download Google Photos APK
         id: download_apk
