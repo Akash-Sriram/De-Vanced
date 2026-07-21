@@ -35,6 +35,8 @@ public class GitHubReleaseChecker {
         }
         hasCheckedThisSession = true;
 
+        cleanupOldDownloads(context);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -198,6 +200,24 @@ public class GitHubReleaseChecker {
             context.startActivity(installIntent);
         } catch (Exception e) {
             Logger.printException(() -> "Error triggering package installer", e);
+        }
+    }
+
+    private static void cleanupOldDownloads(Context context) {
+        try {
+            java.io.File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (downloadDir != null && downloadDir.exists() && downloadDir.isDirectory()) {
+                java.io.File[] files = downloadDir.listFiles();
+                if (files != null) {
+                    for (java.io.File file : files) {
+                        if (file.isFile() && file.getName().startsWith("GooglePhotos-") && file.getName().endsWith("-patched.apk")) {
+                            file.delete();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Logger.printException(() -> "Error cleaning up old download files", e);
         }
     }
 }
