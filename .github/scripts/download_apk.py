@@ -15,48 +15,79 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
 }
 
+def get_scraper():
+    try:
+        import cloudscraper
+        return cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True})
+    except ImportError:
+        return None
+
 def fetch_url(url, extra_headers=None):
     headers = HEADERS.copy()
     if extra_headers:
         headers.update(extra_headers)
-    req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req) as resp:
-        return resp.read()
+    scraper = get_scraper()
+    if scraper:
+        resp = scraper.get(url, headers=headers)
+        return resp.content
+    else:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req) as resp:
+            return resp.read()
 
 def download_file(url, output_path, extra_headers=None):
     headers = HEADERS.copy()
     if extra_headers:
         headers.update(extra_headers)
-    req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req) as resp, open(output_path, "wb") as out_file:
-        total = int(resp.headers.get("Content-Length", 0))
-        downloaded = 0
-        block_size = 8192
-        while True:
-            buffer = resp.read(block_size)
-            if not buffer:
-                break
-            downloaded += len(buffer)
-            out_file.write(buffer)
-            if total > 0:
-                percent = downloaded / total * 100
-                sys.stdout.write(f"\rDownloading: {percent:.1f}% ({downloaded}/{total} bytes)")
-                sys.stdout.flush()
-        print()
+    scraper = get_scraper()
+    if scraper:
+        resp = scraper.get(url, headers=headers, stream=True)
+        content_type = resp.headers.get("Content-Type", "")
+        if "text/html" in content_type:
+            soup = BeautifulSoup(resp.text, "html.parser")
+            link = soup.find("a", id="download-link")
+            if not link:
+                for a in soup.find_all("a", href=True):
+                    if "key=" in a["href"] or "download.php" in a["href"]:
+                        link = a
+                        break
+            if link and link.get("href"):
+                direct_href = urllib.parse.urljoin(url, link["href"])
+                print(f"Following direct download link: {direct_href}")
+                resp = scraper.get(direct_href, headers=headers, stream=True)
+        with open(output_path, "wb") as out_file:
+            for chunk in resp.iter_content(chunk_size=8192):
+                if chunk:
+                    out_file.write(chunk)
+    else:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req) as resp, open(output_path, "wb") as out_file:
+            total = int(resp.headers.get("Content-Length", 0))
+            downloaded = 0
+            block_size = 8192
+            while True:
+                buffer = resp.read(block_size)
+                if not buffer:
+                    break
+                downloaded += len(buffer)
+                out_file.write(buffer)
+                if total > 0:
+                    percent = downloaded / total * 100
+                    sys.stdout.write(f"\rDownloading: {percent:.1f}% ({downloaded}/{total} bytes)")
+                    sys.stdout.flush()
+            print()
 
 def get_apkmirror_apk(variant_url, output_path, check_version_only=False):
     print(f"Scraping variant list from: {variant_url}")
     html = fetch_url(variant_url).decode("utf-8")
     soup = BeautifulSoup(html, "html.parser")
     
-    # Find app releases / detail pages
     detail_link = None
     version_str = "unknown"
     for a in soup.find_all("a", href=True):
         href = a["href"]
         if "/apk/google-inc/photos/google-photos-" in href and (href.endswith("-download/") or "android-apk-download" in href):
             detail_link = urllib.parse.urljoin("https://www.apkmirror.com", href)
-            # Extract version from link text or href
             match = re.search(r'google-photos-([0-9\-]+)', href)
             if match:
                 version_str = match.group(1).replace('-', '.')
@@ -84,7 +115,6 @@ def get_apkmirror_apk(variant_url, output_path, check_version_only=False):
     detail_html = fetch_url(detail_link).decode("utf-8")
     detail_soup = BeautifulSoup(detail_html, "html.parser")
 
-    # Find the download page link
     download_page_link = None
     for a in detail_soup.find_all("a", href=True):
         if "download.php" in a["href"] or "android-apk-download/" in a["href"]:
@@ -138,8 +168,9 @@ def main():
         print(f"Downloading direct URL: {args.direct_url}")
         download_file(args.direct_url, args.output)
     else:
+        version_str = "unknown"
         try:
-            get_apkmirror_apk(args.variant_url, args.output)
+            version_str = get_apkmirror_apk(args.variant_url, args.output)
         except Exception as e:
             print(f"Error scraping APKMirror: {e}")
             print("Notice: If APKMirror blocked the runner, pass --direct-url or run workflow with direct input link.")
