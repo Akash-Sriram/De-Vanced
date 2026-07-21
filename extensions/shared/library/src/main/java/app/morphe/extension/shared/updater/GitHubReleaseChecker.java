@@ -103,12 +103,23 @@ public class GitHubReleaseChecker {
         String[] latestParts = latest.split("\\.");
         String[] currentParts = current.split("\\.");
 
-        int length = Math.max(latestParts.length, currentParts.length);
-        for (int i = 0; i < length; i++) {
-            int l = i < latestParts.length ? parseSafeInt(latestParts[i]) : 0;
-            int c = i < currentParts.length ? parseSafeInt(currentParts[i]) : 0;
+        int minLength = Math.min(latestParts.length, currentParts.length);
+        for (int i = 0; i < minLength; i++) {
+            int l = parseSafeInt(latestParts[i]);
+            int c = parseSafeInt(currentParts[i]);
             if (l > c) return true;
             if (l < c) return false;
+        }
+
+        // If they are equal up to the minimum length:
+        // If latest is longer (e.g. 7.84.0.948508402 vs 7.84.0), ignore the build number suffix
+        // if the core version (major.minor.patch) is already identical (minLength >= 3).
+        if (latestParts.length > currentParts.length && minLength < 3) {
+            for (int i = minLength; i < latestParts.length; i++) {
+                if (parseSafeInt(latestParts[i]) > 0) {
+                    return true;
+                }
+            }
         }
         return false;
     }
