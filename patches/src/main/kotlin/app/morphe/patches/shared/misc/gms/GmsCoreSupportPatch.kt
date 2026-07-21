@@ -542,8 +542,8 @@ fun gmsCoreSupportResourcePatch(
             document("AndroidManifest.xml").use { document ->
                 val applicationNode =
                     document
-                        .getElementsByTagName("application")
-                        .item(0)
+                         .getElementsByTagName("application")
+                         .item(0)
 
                 // Spoof package name and signature.
                 applicationNode.adoptChild("meta-data") {
@@ -562,6 +562,12 @@ fun gmsCoreSupportResourcePatch(
                     setAttribute("android:name", "app.revanced.MICROG_PACKAGE_NAME")
                     setAttribute("android:value", "$GMS_CORE_VENDOR_GROUP_ID.android.gms")
                 }
+
+                // Add REQUEST_INSTALL_PACKAGES permission for in-app updates
+                val manifestNode = document.getElementsByTagName("manifest").item(0)
+                val permissionNode = document.createElement("uses-permission")
+                permissionNode.setAttribute("android:name", "android.permission.REQUEST_INSTALL_PACKAGES")
+                manifestNode.appendChild(permissionNode)
             }
         }
 
