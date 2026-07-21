@@ -84,10 +84,11 @@ public class GitHubReleaseChecker {
 
                     if (isNewerVersion(latestVersion, currentVersion)) {
                         final String finalDownloadUrl = downloadUrl;
+                        final String finalCurrentVersion = currentVersion;
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                             @Override
                             public void run() {
-                                showUpdateDialog(context, latestVersion, finalDownloadUrl);
+                                showUpdateDialog(context, latestVersion, finalDownloadUrl, finalCurrentVersion);
                             }
                         });
                     }
@@ -132,14 +133,17 @@ public class GitHubReleaseChecker {
         }
     }
 
-    private static void showUpdateDialog(final Context context, final String newVersion, final String downloadUrl) {
+    private static void showUpdateDialog(final Context context, final String newVersion, final String downloadUrl, final String currentVersion) {
         if (!(context instanceof Activity) || ((Activity) context).isFinishing()) {
             return;
         }
 
         new AlertDialog.Builder(context)
                 .setTitle("Update Available")
-                .setMessage("A new patched version of Google Photos (v" + newVersion + ") is available. Would you like to download and install it?")
+                .setMessage("A new patched version of Google Photos is available.\n\n" +
+                            "Installed version: " + currentVersion + "\n" +
+                            "Latest version: " + newVersion + "\n\n" +
+                            "Would you like to download and install it?")
                 .setPositiveButton("Update", (dialog, which) -> downloadAndInstallApk(context, newVersion, downloadUrl))
                 .setNegativeButton("Later", null)
                 .setCancelable(true)

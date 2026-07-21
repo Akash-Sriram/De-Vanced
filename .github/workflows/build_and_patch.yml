@@ -87,6 +87,14 @@ jobs:
             python .github/scripts/download_apk.py --output google-photos-base.apk
           fi
 
+      - name: Extract Actual APK Version
+        id: get_apk_ver
+        run: |
+          AAPT_PATH=$(find $ANDROID_HOME/build-tools -name "aapt" | sort -V | tail -n 1)
+          APK_VER=$($AAPT_PATH dump badging google-photos-base.apk | grep -oP "versionName='\K[^']+")
+          echo "Actual APK version extracted: $APK_VER"
+          echo "apk_version=$APK_VER" >> $GITHUB_OUTPUT
+
       - name: Patch Google Photos APK using Morphe CLI
         run: |
           java -jar morphe-cli.jar patch \
@@ -97,7 +105,7 @@ jobs:
       - name: Sign Patched APK
         run: |
           # Determine version string and sanitize trailing dots
-          APK_VER="${{ steps.download_apk.outputs.apk_version }}"
+          APK_VER="${{ steps.get_apk_ver.outputs.apk_version }}"
           APK_VER=$(echo "$APK_VER" | sed -e 's/[^0-9.]//g' -e 's/\.*$//')
           if [ -z "$APK_VER" ]; then
             APK_VER="build-${{ github.run_number }}"
