@@ -152,41 +152,136 @@ public class GitHubReleaseChecker {
                 .show();
     }
 
-    private static void downloadAndInstallApk(final Context context, String version, String downloadUrl) {
+    private static void downloadAndInstallApk(final Context context, final String version, String downloadUrl) {
+        if (!(context instanceof Activity) || ((Activity) context).isFinishing()) {
+            return;
+        }
+
         try {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(downloadUrl));
             request.setTitle("Google Photos Update (v" + version + ")");
             request.setDescription("Downloading updated patched Google Photos build...");
-            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE);
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "GooglePhotos-v" + version + "-patched.apk");
 
             final DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-            if (manager != null) {
-                final long downloadId = manager.enqueue(request);
+            if (manager == null) return;
 
-                BroadcastReceiver onComplete = new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context ctxt, Intent intent) {
-                        long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                        if (id == downloadId) {
-                            try {
-                                ctxt.unregisterReceiver(this);
-                            } catch (Exception ignored) {}
+            final long downloadId = manager.enqueue(request);
 
-                            Uri apkUri = manager.getUriForDownloadedFile(downloadId);
-                            if (apkUri != null) {
-                                installApk(ctxt, apkUri);
+            // Programmatically build dialog
+            final float density = context.getResources().getDisplayMetrics().density;
+            android.widget.LinearLayout layout = new android.widget.LinearLayout(context);
+            layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+            int padding = (int) (20 * density);
+            layout.setPadding(padding, padding, padding, padding);
+
+            final android.widget.TextView progressText = new android.widget.TextView(context);
+            progressText.setText("Preparing download...");
+            progressText.setTextSize(16);
+            layout.addView(progressText);
+
+            final android.widget.ProgressBar progressBar = new android.widget.ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
+            progressBar.setMax(100);
+            progressBar.setIndeterminate(true);
+            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, (int) (10 * density), 0, 0);
+            progressBar.setLayoutParams(lp);
+            layout.addView(progressBar);
+
+            final AlertDialog downloadDialog = new AlertDialog.Builder(context)
+                    .setTitle("Downloading Update")
+                    .setView(layout)
+                    .setCancelable(false)
+                    .create();
+
+            downloadDialog.show();
+
+            // Background status polling
+            final Handler mainHandler = new Handler(Looper.getMainLooper());
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    boolean downloading = true;
+                    while (downloading) {
+                        try {
+                            Thread.sleep(250);
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+
+                        DownloadManager.Query q = new DownloadManager.Query();
+                        q.setFilterById(downloadId);
+                        android.database.Cursor cursor = manager.query(q);
+                        if (cursor != null && cursor.moveToFirst()) {
+                            int bytesDownloadedCol = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
+                            int bytesTotalCol = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES);
+                            int statusCol = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+
+                            if (bytesDownloadedCol != -1 && bytesTotalCol != -1 && statusCol != -1) {
+                                final int bytesDownloaded = cursor.getInt(bytesDownloadedCol);
+                                final int bytesTotal = cursor.getInt(bytesTotalCol);
+                                final int status = cursor.getInt(statusCol);
+
+                                mainHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (status == DownloadManager.STATUS_RUNNING) {
+                                            progressBar.setIndeterminate(false);
+                                            if (bytesTotal > 0) {
+                                                int progress = (int) ((bytesDownloaded * 100L) / bytesTotal);
+                                                progressBar.setProgress(progress);
+                                                progressText.setText("Downloading: " + progress + "% (" 
+                                                    + (bytesDownloaded / 1024 / 1024) + "MB / " 
+                                                    + (bytesTotal / 1024 / 1024) + "MB)");
+                                            } else {
+                                                progressBar.setIndeterminate(true);
+                                                progressText.setText("Downloading...");
+                                            }
+                                        }
+                                    }
+                                });
+
+                                if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                                    downloading = false;
+                                    mainHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            try {
+                                                downloadDialog.dismiss();
+                                            } catch (Exception ignored) {}
+                                            Uri apkUri = manager.getUriForDownloadedFile(downloadId);
+                                            if (apkUri != null) {
+                                                installApk(context, apkUri);
+                                            }
+                                        }
+                                    });
+                                } else if (status == DownloadManager.STATUS_FAILED) {
+                                    downloading = false;
+                                    mainHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            try {
+                                                downloadDialog.dismiss();
+                                            } catch (Exception ignored) {}
+                                            new AlertDialog.Builder(context)
+                                                    .setTitle("Download Failed")
+                                                    .setMessage("Failed to download the update APK. Please try again later.")
+                                                    .setPositiveButton("OK", null)
+                                                    .show();
+                                        }
+                                    });
+                                }
                             }
+                            cursor.close();
+                        } else {
+                            if (cursor != null) cursor.close();
                         }
                     }
-                };
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    context.registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED);
-                } else {
-                    context.registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
                 }
-            }
+            }).start();
+
         } catch (Exception e) {
             Logger.printException(() -> "Error downloading update APK", e);
         }
