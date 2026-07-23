@@ -135,12 +135,25 @@ public class GitHubReleaseChecker {
         }
     }
 
+    private static int getDialogTheme(Context context) {
+        try {
+            int nightModeFlags = context.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+            if (nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES) {
+                return android.R.style.Theme_DeviceDefault_Dialog_Alert;
+            } else {
+                return android.R.style.Theme_DeviceDefault_Light_Dialog_Alert;
+            }
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     private static void showUpdateDialog(final Context context, final String newVersion, final String downloadUrl, final String currentVersion) {
         if (!(context instanceof Activity) || ((Activity) context).isFinishing()) {
             return;
         }
 
-        new AlertDialog.Builder(context)
+        new AlertDialog.Builder(context, getDialogTheme(context))
                 .setTitle("Update Available")
                 .setMessage("A new patched version of Google Photos is available.\n\n" +
                             "Installed version: " + currentVersion + "\n" +
@@ -179,6 +192,14 @@ public class GitHubReleaseChecker {
             final android.widget.TextView progressText = new android.widget.TextView(context);
             progressText.setText("Preparing download...");
             progressText.setTextSize(16);
+            
+            // Set text color to match the theme
+            try {
+                android.util.TypedValue typedValue = new android.util.TypedValue();
+                context.getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
+                progressText.setTextColor(typedValue.data);
+            } catch (Exception ignored) {}
+            
             layout.addView(progressText);
 
             final android.widget.ProgressBar progressBar = new android.widget.ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
@@ -190,7 +211,7 @@ public class GitHubReleaseChecker {
             progressBar.setLayoutParams(lp);
             layout.addView(progressBar);
 
-            final AlertDialog downloadDialog = new AlertDialog.Builder(context)
+            final AlertDialog downloadDialog = new AlertDialog.Builder(context, getDialogTheme(context))
                     .setTitle("Downloading Update")
                     .setView(layout)
                     .setCancelable(false)
