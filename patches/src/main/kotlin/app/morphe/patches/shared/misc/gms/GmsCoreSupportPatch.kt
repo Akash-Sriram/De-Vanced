@@ -632,7 +632,7 @@ private val changePackageNamePatch = resourcePatch(
     name = "Change package name",
     description = "Appends \".morphe\" to the package name by default. " +
         "Changing the package name of the app can lead to unexpected issues.",
-    default = false,
+    default = true,
 ) {
     packageNameOption = stringOption(
         key = "packageName",
