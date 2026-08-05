@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.0.8...v1.1.0) (2026-08-05)
+
+
+### Features
+
+* relax FrictionlessEligibilityFingerprint to support Google Photos 7.87.0+ ([3eef011](https://github.com/Akash-Sriram/De-Vanced/commit/3eef011b82ddaadb745f972ae2e1f4ea2be00b16))
+
 ## [1.0.8](https://github.com/Akash-Sriram/De-Vanced/compare/v1.0.7...v1.0.8) (2026-07-21)
 
 

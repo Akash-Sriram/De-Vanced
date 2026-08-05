@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-07-21T00:14:58",
-  "description": "## [1.0.8](https://github.com/Akash-Sriram/De-Vanced/compare/v1.0.7...v1.0.8) (2026-07-21)\n\n\n### Bug Fixes\n\n* inline changePackageNamePatch as private implementation to hide it ([0976e55](https://github.com/Akash-Sriram/De-Vanced/commit/0976e55733cf04a58ee1c4fc3270b7e3d7affbe5))",
-  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.0.8/patches-1.0.8.mpp",
+  "created_at": "2026-08-05T05:47:06",
+  "description": "# [1.1.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.0.8...v1.1.0) (2026-08-05)\n\n\n### Features\n\n* relax FrictionlessEligibilityFingerprint to support Google Photos 7.87.0+ ([3eef011](https://github.com/Akash-Sriram/De-Vanced/commit/3eef011b82ddaadb745f972ae2e1f4ea2be00b16))",
+  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.1.0/patches-1.1.0.mpp",
   "signature_download_url": "",
-  "version": "1.0.8"
+  "version": "1.1.0"
 }
