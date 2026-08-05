@@ -15,3 +15,6 @@
     public static *;
 }
 -dontwarn javax.lang.model.element.Modifier
+-dontwarn com.google.android.auth.**
+-dontwarn com.google.android.gms.**
+-dontwarn org.microg.gms.**

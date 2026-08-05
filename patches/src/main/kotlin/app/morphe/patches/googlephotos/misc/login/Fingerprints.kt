@@ -82,8 +82,7 @@ internal object FrictionlessEligibilityFingerprint : Fingerprint(
     returnType = "Z",
     parameters = listOf(),
     custom = { method, classDef ->
-        classDef.hasMethodReferencingStringContaining("maybeStartFrictionless") &&
-            classDef.hasMethodReferencingString("ProvideFrctAccountTask") &&
+        classDef.hasMethodReferencingString("ProvideFrctAccountTask") &&
             method.referencesMethod("Z", emptyList()) &&
             method.referencesMethod("V", listOf("I")) &&
             method.referencesIntLiteral(-1)
