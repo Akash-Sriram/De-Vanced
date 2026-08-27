@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.1...v1.6.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **googlephotos:** silence avatar fetch error toasts and avoid redundant build-number update dialogs ([63aa7b4](https://github.com/Akash-Sriram/De-Vanced/commit/63aa7b4e5d6002d9780ef374e45ea562b92a879e))
+
 ## [1.6.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.0...v1.6.1) (2026-08-27)
 
 
