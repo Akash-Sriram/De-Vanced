@@ -33,6 +33,7 @@ import app.morphe.extension.shared.ui.CustomDialog;
 
 @SuppressWarnings("unused")
 public class GmsCoreSupportPatch {
+    private static final String GOOGLE_PHOTOS_PACKAGE_NAME = "com.google.android.apps.photos";
     private static final String GMS_CORE_PACKAGE_NAME
             = getGmsCoreVendorGroupId() + ".android.gms";
     private static final Uri GMS_CORE_PROVIDER
@@ -149,6 +150,21 @@ public class GmsCoreSupportPatch {
                 Utils.showToastLong(str("gms_core_toast_not_installed_message"));
                 open(getGmsCoreDownload());
                 return;
+            }
+
+            // Google Photos' current OneGoogle account UI asks newer Play Services APIs for the
+            // profile image. Keep this compatibility bridge strictly scoped to Photos so shared
+            // GmsCore users are unaffected even if they expose similar OneGoogle resources.
+            if (GOOGLE_PHOTOS_PACKAGE_NAME.equals(getOriginalPackageName())) {
+                int avatarViewId = context.getResources().getIdentifier(
+                        "og_apd_internal_image_view", "id", context.getPackageName());
+                if (avatarViewId == 0) {
+                    avatarViewId = context.getResources().getIdentifier(
+                            "og_apd_internal_image_view", "id", GOOGLE_PHOTOS_PACKAGE_NAME);
+                }
+                if (avatarViewId != 0) {
+                    GooglePhotosAccountAvatar.install(context);
+                }
             }
 
             // Check if GmsCore is whitelisted from battery optimizations.
