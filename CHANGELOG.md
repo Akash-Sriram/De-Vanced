@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.0...v1.6.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **googlephotos:** resolve HomeActivity onCreate fingerprint and remove redundant constructor hooks ([bbf7a21](https://github.com/Akash-Sriram/De-Vanced/commit/bbf7a21bba34453ca9e6fe9d06f1f304078c7af3))
+
 # [1.6.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.5.1...v1.6.0) (2026-08-27)
 
 
