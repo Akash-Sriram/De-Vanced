@@ -429,6 +429,29 @@ public class Utils {
         seedPhenotypeFlags(appContext);
     }
 
+    public static void seedPhenotypeEarly(Context context) {
+        try {
+            File prefsDir = new File(context.getApplicationInfo().dataDir, "shared_prefs");
+            if (!prefsDir.exists()) {
+                prefsDir.mkdirs();
+            }
+            File xmlFile = new File(prefsDir, "com.google.android.apps.photos.phenotype.xml");
+            if (!xmlFile.exists() || xmlFile.length() < 100_000) {
+                try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml");
+                     java.io.FileOutputStream out = new java.io.FileOutputStream(xmlFile)) {
+                    byte[] buffer = new byte[8192];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                    }
+                    out.flush();
+                }
+                xmlFile.setReadable(true, false);
+                xmlFile.setWritable(true, false);
+            }
+        } catch (Throwable ignored) {}
+    }
+
     public static void seedPhenotypeFlags(Context context) {
         try {
             android.util.Log.e("MorphePhenotype", "seedPhenotypeFlags called with context: " + context);

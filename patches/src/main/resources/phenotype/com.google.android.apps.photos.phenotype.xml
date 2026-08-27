@@ -220,7 +220,7 @@
     <boolean name="45709234" value="true" />
     <boolean name="45694096" value="true" />
     <boolean name="45721347" value="true" />
-    <boolean name="45759932" value="true" />
+    <boolean name="45759932" value="false" />
     <boolean name="45686499" value="false" />
     <boolean name="45792500" value="false" />
     <float name="4106" value="0.8" />
@@ -477,6 +477,7 @@
     <boolean name="45752889" value="false" />
     <boolean name="45815628" value="false" />
     <boolean name="45571927" value="false" />
+    <boolean name="45834384" value="false" />
     <boolean name="45810390" value="false" />
     <boolean name="45658468" value="true" />
     <boolean name="45659799" value="true" />
@@ -932,6 +933,7 @@
     <string name="4294">CgUIABDgIAoGCKAfEIIzCgYIwD4Q0EE</string>
     <boolean name="45666355" value="true" />
     <boolean name="45744293" value="true" />
+    <boolean name="45820925" value="false" />
     <boolean name="45416639" value="false" />
     <boolean name="45634764" value="false" />
     <boolean name="45717906" value="false" />
@@ -1155,7 +1157,7 @@
     <boolean name="45766963" value="true" />
     <boolean name="2993" value="false" />
     <boolean name="45373080" value="false" />
-    <long name="__phenotype_configuration_version" value="1787761500" />
+    <long name="__phenotype_configuration_version" value="1787837100" />
     <string name="45649830">https://crowdsource.google.com/csf/?utm_source=gphotos&amp;utm_medium=1p_referral&amp;utm_campaign=visual_moments&amp;utm_term=cof&amp;utm_content=%s#/contribute/visual-moments-video</string>
     <boolean name="45368973" value="false" />
     <boolean name="45369821" value="true" />
@@ -1391,7 +1393,7 @@
     <boolean name="45756205" value="true" />
     <boolean name="45730036" value="false" />
     <long name="3013" value="-1" />
-    <boolean name="45769523" value="true" />
+    <boolean name="45769523" value="false" />
     <long name="3012" value="-1" />
     <long name="3011" value="-1" />
     <long name="3010" value="-1" />
@@ -1532,7 +1534,7 @@
     <long name="45408241" value="20" />
     <boolean name="4389" value="true" />
     <boolean name="45362786" value="false" />
-    <boolean name="45817668" value="false" />
+    <boolean name="45817668" value="true" />
     <boolean name="45779348" value="false" />
     <boolean name="45381022" value="false" />
     <long name="45807885" value="0" />
@@ -1778,7 +1780,7 @@
     <boolean name="2645" value="false" />
     <long name="45656009" value="1" />
     <boolean name="45742888" value="false" />
-    <string name="__phenotype_snapshot_token">akash.sriram@outlook.com com.google.android.apps.photos 52244454 0 -421740448 com.google.android.apps.photos -421740448 1 822 822 822</string>
+    <string name="__phenotype_snapshot_token">akash.sriram@outlook.com com.google.android.apps.photos 52244454 0 -2121289642 com.google.android.apps.photos -421740448 1 2507 822 2507</string>
     <long name="2641" value="50000000" />
     <boolean name="45659519" value="true" />
     <boolean name="45716127" value="false" />
@@ -1830,7 +1832,7 @@
     <boolean name="45784190" value="false" />
     <boolean name="45625136" value="false" />
     <boolean name="3998" value="true" />
-    <long name="3999" value="118109605" />
+    <long name="3999" value="120790955" />
     <boolean name="3517" value="true" />
     <boolean name="45798343" value="false" />
     <boolean name="45419465" value="false" />
@@ -2388,7 +2390,7 @@
     <boolean name="3606" value="true" />
     <boolean name="45799623" value="true" />
     <boolean name="45427556" value="false" />
-    <string name="__phenotype_server_token">CAMSmAcNkgC7idAOMKwFsgQyjQa-BiMMBQUFBQ7yBTQpBVtfVSceSzInBasGaxvUBCdNcVqcBiIFgAbeBmANQYIFBYoFtAZizAZWngazBiRxcylZqQUSBSIXdRIKBm6oBUW6BpUGGqcGFh1sEwYFTQ8AWakGDSwIXQIbc6Osih-zBiYVA0AOKR8GUzoGRVUGAwYvBmoQrgYFFZwGCjDQBloRThMMBWsGAwZCmQaFBn5OCQI04AaeBUBZBiZFAAYoPxwGRAZiNmKaBQUFPAaoBmdzCwa7BhRZDBsGcgYKRgaXBhYGLj4FBSYoHQYNqgUGEBkPE0vYBgYO4gYGwQYGigYGSwaOBgY5kAaVBgZhBjtRBo0FTAa5BQamBFkcBoAG1gZXrQYGiwYGHN4GBhoGEgaRp2jx_uMNBorO9wbg5QQG1aIBBsTbBgbdtw8Gy-Vj8KMM7bQDBrhNBvPEFqm2CIDEAJcXmtsWtAaIywMGl6cCX5mjCMvxDJYz150BBtkiBqWIBgazIwSS-Qak2FfcIgbKEeaWAgbB-QOpGQa3pAUG3oMOBgMGpP8BBv_dAwa9sATW4gKtyQHDgwK0sOkDhu8O-90AB_BfBNHXBbr5AgbPsAYEkP8GBtD1FwaxlAUGkpUEtXwG0qIGBLQ2mx_ohwQG-44EBuE_BrbSDKmzBQTsyQMGnmSnxQQGuoMF5xEGxY8JBueLDwaBxQ4EtMcBB-HCBAac3wbTYgbQ9AW-tAAG0Q8G_9EDtnkEtKkGrp4GBrK9BrzVBfCiBASgWJGQAgSADATrQ9yPBaW-AwTpEgTuug_olQYE9MAGBtGcBou2BuDIBctwBPDLBMWuBo2FBfURBOHDAwaV2QYGs88GBp3ABtGEBQTGO8a8Bb4IiQmwCATU5AME1T0GQwYDBqRmsg6JSAadmwUEsGiB5AIGs60EBcWrBvnRBLeaBgSRwAYGp48Dq6MD3UQGpIsGwr4GBOWpBO7WBgTanQXvVwX2pgYEsf4DBLIilk0ErkcGgjoEwE8EqAYE3QYEzYwGBKfcBgXqLQSFAgb-Fga7cAT9CgbIe4mLBASNygYG33UE6ioGYwRnBKhBBoIkBB4EmP8GBpEABqohxxIEtb0EBNw_BP8QBKzGBgT6TASPvgYGhHTPD4cXBtMDBpKmBgbmAIU4BO58BLV1BMlbBIP5BgSxUgbmvA8G5H0EuIgGiQvA7wacWwbI1gYG5PIGBoJeBg==</string>
+    <string name="__phenotype_server_token">CAMSjwcNiwC7idAOMKwFsgQyjQa-BiMMBQUFBQ7yBTQpBVtfVSceSzInBasGaxvUBCdNcVqcBiIFgAbeBmANQYIFBYoFtAZizAZWngazBiRxcylZqQUSBSIXdRIKBm6oBUW6BpUGGqcGFh1sEwYFTQ8AWakGDSwIXQIbc6Osih-zBiYVA0AOKR8GUzoGRVUGAwYvBmoQrgYFFZwGCjDQBloRThMMBWsGAwZCmQaFBn5OCQI04AaeBUBZBiZFAAYoPxwGRAZiNmKaBQUFPAaoBmdzCwa7BhRZDBsGcgYKRgaXBhYGLj4FBSYoHQYNqgUGEBkPE0vYBgYO4gYGwQYGigYGSwaOBgY5kAaVBgZhBjtRBo0FTAa5BQamBFkcBoAG1gZXrQYGiwYGHN4GBhoGEgaRp2jx_uMNBorO9wbg5QQG1aIBBsTbBgbdtw8Gy-Vj8KMM7bQDBrhNBvPEFqm2CIDEAJcXmtsWtAaIywMGl6cCX5mjCMvxDJYz150BBtkiBqWIBgazIwSS-Qak2FfcIgbKEeaWAgbB-QOpGQa3pAUG3oMOBgMGpP8BBv_dAwa9sATW4gKtyQHDgwK0sOkDhu8O-90AB_BfBNHXBbr5AgbPsAYEkP8GBtD1FwaxlAUGkpUEtXwG0qIGBLQ2mx_ohwQG-44EBuE_BrbSDKmzBQTsyQMGnmSnxQQGuoMF5xEGxY8JBueLDwaBxQ4EtMcBB-HCBAac3wbTYgbQ9AW-tAAG0Q8G_9EDtnkEtKkGrp4GBrK9BrzVBfCiBASgWJGQAgSADATrQ9yPBaW-AwTpEgTuug_olQYE9MAGBtGcBou2BuDIBctwBPDLBMWuBo2FBfURBOHDAwaV2QYGs88GBp3ABtGEBQTGO8a8Bb4IiQmwCATU5AME1T0GQwYDBqRmsg6JSAadmwUEsGiB5AIGs60EBcWrBvnRBLeaBgSRwAYGp48Dq6MD3UQGpIsGwr4GBOWpBO7WBgTanQXvVwX2pgYEsf4DBLIilk0ErkcGgjoEwE8EqAYE3QYE55YEBIUCBv4WBrtwBP0KBsh7k6oFBPJZBI3KBgbfdQTqKgZjBJNABoIkBB4EmP8GBpEABqohxxIEtb0EBN9XBKzGBgT6TASPvgYGhHTPD4cXBtMDBpKmBgbmAIU4BO58BLV1BMlbBIP5BgSxUgbAsQ4EuIgGiQvA7wacWwbI1gYG5PIGBoJeBoWoBg==</string>
     <float name="2771" value="0.5" />
     <long name="45638987" value="6" />
     <boolean name="45740593" value="false" />

@@ -112,6 +112,17 @@ val spoofFeaturesPatch = bytecodePatch(
         }
 
         try {
+            val appClass = mutableClassDefBy("Lcom/google/android/apps/photos/PhotosRoot_Application;")
+            val initMethod = appClass.methods.firstOrNull { it.name == "<init>" }
+            if (initMethod != null) {
+                appClass.findMutableMethodOf(initMethod).addInstruction(
+                    1,
+                    "invoke-static { p0 }, Lapp/morphe/extension/shared/Utils;->seedPhenotypeEarly(Landroid/content/Context;)V",
+                )
+            }
+        } catch (_: Exception) {}
+
+        try {
             val mutableHomeActivity = mutableClassDefBy("Lcom/google/android/apps/photos/home/HomeActivity;")
             val constructor = mutableHomeActivity.methods.firstOrNull { it.name == "<init>" }
             if (constructor != null) {
