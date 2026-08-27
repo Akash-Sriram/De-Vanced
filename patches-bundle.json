@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-08-27T12:57:40",
-  "description": "# [1.5.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.4.0...v1.5.0) (2026-08-27)\n\n\n### Features\n\n* **photos:** add Google Photos avatar bridge and Play Services signature bypass ([#114](https://github.com/Akash-Sriram/De-Vanced/issues/114)) ([9e29ee7](https://github.com/Akash-Sriram/De-Vanced/commit/9e29ee7beaeeb43576a047568debcd44a7b7cad3))",
-  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.5.0/patches-1.5.0.mpp",
+  "created_at": "2026-08-27T13:55:24",
+  "description": "## [1.5.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.5.0...v1.5.1) (2026-08-27)\n\n\n### Bug Fixes\n\n* **googlephotos:** isolate Phenotype from GmsCore wipe and fix HomeActivity startup lifecycle hook ([26c03a9](https://github.com/Akash-Sriram/De-Vanced/commit/26c03a94c243504330c01d3ce22f52d95de82b6a))",
+  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.5.1/patches-1.5.1.mpp",
   "signature_download_url": "",
-  "version": "1.5.0"
+  "version": "1.5.1"
 }

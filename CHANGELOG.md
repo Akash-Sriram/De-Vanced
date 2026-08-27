@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.5.0...v1.5.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **googlephotos:** isolate Phenotype from GmsCore wipe and fix HomeActivity startup lifecycle hook ([26c03a9](https://github.com/Akash-Sriram/De-Vanced/commit/26c03a94c243504330c01d3ce22f52d95de82b6a))
+
 # [1.5.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.4.0...v1.5.0) (2026-08-27)
 
 
