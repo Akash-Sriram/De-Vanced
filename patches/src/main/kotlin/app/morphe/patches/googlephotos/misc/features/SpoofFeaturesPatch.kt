@@ -113,9 +113,10 @@ val spoofFeaturesPatch = bytecodePatch(
 
         try {
             val mutableHomeActivity = mutableClassDefBy("Lcom/google/android/apps/photos/home/HomeActivity;")
-            mutableHomeActivity.methods.firstOrNull { it.name == "onCreate" }?.let { onCreate ->
-                mutableHomeActivity.findMutableMethodOf(onCreate).addInstruction(
-                    0,
+            val constructor = mutableHomeActivity.methods.firstOrNull { it.name == "<init>" }
+            if (constructor != null) {
+                mutableHomeActivity.findMutableMethodOf(constructor).addInstruction(
+                    1,
                     "invoke-static { p0 }, Lapp/morphe/extension/shared/Utils;->setContext(Landroid/content/Context;)V",
                 )
             }

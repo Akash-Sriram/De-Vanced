@@ -36,7 +36,7 @@ import androidx.annotation.ChecksSdkIntAtLeast;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
+import java.io.File;
 import java.lang.ref.WeakReference;
 import java.text.Bidi;
 import java.text.Collator;
@@ -431,40 +431,62 @@ public class Utils {
 
     public static void seedPhenotypeFlags(Context context) {
         try {
+            android.util.Log.e("MorphePhenotype", "seedPhenotypeFlags called with context: " + context);
+            try {
+                File prefsDir = new File(context.getFilesDir().getParentFile(), "shared_prefs");
+                prefsDir.mkdirs();
+                File xmlFile = new File(prefsDir, "com.google.android.apps.photos.phenotype.xml");
+                try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml");
+                     java.io.FileOutputStream out = new java.io.FileOutputStream(xmlFile)) {
+                    byte[] buffer = new byte[8192];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                    }
+                    out.flush();
+                }
+                xmlFile.setReadable(true, false);
+                xmlFile.setWritable(true, false);
+                android.util.Log.e("MorphePhenotype", "Wrote XML to disk: " + xmlFile.getAbsolutePath() + " (" + xmlFile.length() + " bytes)");
+            } catch (Throwable e) {
+                android.util.Log.e("MorphePhenotype", "Failed to write XML to disk", e);
+            }
+
             android.content.SharedPreferences prefs = context.getSharedPreferences("com.google.android.apps.photos.phenotype", Context.MODE_PRIVATE);
-            if (prefs.getAll().size() < 100) {
-                try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml")) {
-                    org.xmlpull.v1.XmlPullParser parser = android.util.Xml.newPullParser();
-                    parser.setInput(in, "UTF-8");
-                    android.content.SharedPreferences.Editor editor = prefs.edit();
-                    int eventType = parser.getEventType();
-                    while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                        if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG) {
-                            String tag = parser.getName();
-                            String name = parser.getAttributeValue(null, "name");
-                            String value = parser.getAttributeValue(null, "value");
-                            if (name != null) {
-                                if ("boolean".equals(tag) && value != null) {
-                                    editor.putBoolean(name, Boolean.parseBoolean(value));
-                                } else if ("long".equals(tag) && value != null) {
-                                    try { editor.putLong(name, Long.parseLong(value)); } catch (Exception ignored) {}
-                                } else if ("float".equals(tag) && value != null) {
-                                    try { editor.putFloat(name, Float.parseFloat(value)); } catch (Exception ignored) {}
-                                } else if ("string".equals(tag)) {
-                                    editor.putString(name, parser.nextText());
-                                }
+            try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml")) {
+                org.xmlpull.v1.XmlPullParser parser = android.util.Xml.newPullParser();
+                parser.setInput(in, "UTF-8");
+                android.content.SharedPreferences.Editor editor = prefs.edit();
+                int eventType = parser.getEventType();
+                int count = 0;
+                while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                    if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                        String tag = parser.getName();
+                        String name = parser.getAttributeValue(null, "name");
+                        String value = parser.getAttributeValue(null, "value");
+                        if (name != null) {
+                            if ("boolean".equals(tag) && value != null) {
+                                editor.putBoolean(name, Boolean.parseBoolean(value));
+                                count++;
+                            } else if ("long".equals(tag) && value != null) {
+                                try { editor.putLong(name, Long.parseLong(value)); count++; } catch (Exception ignored) {}
+                            } else if ("float".equals(tag) && value != null) {
+                                try { editor.putFloat(name, Float.parseFloat(value)); count++; } catch (Exception ignored) {}
+                            } else if ("string".equals(tag)) {
+                                editor.putString(name, parser.nextText());
+                                count++;
                             }
                         }
-                        eventType = parser.next();
                     }
-                    editor.commit();
-                    Logger.printInfo(() -> "Successfully seeded " + prefs.getAll().size() + " Phenotype flags into in-memory SharedPreferences");
-                } catch (Exception e) {
-                    Logger.printInfo(() -> "Phenotype asset parsing failed: " + e.getMessage());
+                    eventType = parser.next();
                 }
+                boolean committed = editor.commit();
+                android.util.Log.e("MorphePhenotype", "Committed " + count + " flags to prefs, success=" + committed + ", total size=" + prefs.getAll().size());
+            } catch (Throwable e) {
+                android.util.Log.e("MorphePhenotype", "Failed to seed prefs from asset", e);
             }
         } catch (Throwable t) {
-            Logger.printException(() -> "Error in seedPhenotypeFlags", t);
+            android.util.Log.e("MorphePhenotype", "Fatal error in seedPhenotypeFlags", t);
         }
     }
 

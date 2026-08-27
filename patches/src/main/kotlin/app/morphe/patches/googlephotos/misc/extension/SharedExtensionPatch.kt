@@ -16,7 +16,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private class HomeActivityInitHook : ExtensionHook(
     fingerprint = HomeActivityOnCreateFingerprint,
-    insertIndexResolver = { 0 },
+    insertIndexResolver = { 1 },
     contextRegisterResolver = { "p0" },
 )
 
