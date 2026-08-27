@@ -5,6 +5,7 @@
 package app.morphe.patches.googlephotos.misc.features
 
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.bytecodePatch
@@ -27,6 +28,7 @@ val spoofFeaturesPatch = bytecodePatch(
 
     dependsOn(
         spoofBuildInfoPatch,
+        phenotypeAssetsPatch,
         app.morphe.patches.googlephotos.misc.extension.sharedExtensionPatch,
     )
 
@@ -108,6 +110,16 @@ val spoofFeaturesPatch = bytecodePatch(
                 }
             }
         }
+
+        try {
+            val mutableHomeActivity = mutableClassDefBy("Lcom/google/android/apps/photos/home/HomeActivity;")
+            mutableHomeActivity.methods.firstOrNull { it.name == "onCreate" }?.let { onCreate ->
+                mutableHomeActivity.findMutableMethodOf(onCreate).addInstruction(
+                    0,
+                    "invoke-static { p0 }, Lapp/morphe/extension/shared/Utils;->setContext(Landroid/content/Context;)V",
+                )
+            }
+        } catch (_: Exception) {}
     }
 }
 

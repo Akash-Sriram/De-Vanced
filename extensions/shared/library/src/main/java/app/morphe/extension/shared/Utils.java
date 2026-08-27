@@ -432,7 +432,7 @@ public class Utils {
     public static void seedPhenotypeFlags(Context context) {
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("com.google.android.apps.photos.phenotype", Context.MODE_PRIVATE);
-            if (prefs.getAll().size() < 10) {
+            if (prefs.getAll().size() < 100) {
                 try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml")) {
                     org.xmlpull.v1.XmlPullParser parser = android.util.Xml.newPullParser();
                     parser.setInput(in, "UTF-8");
@@ -457,7 +457,7 @@ public class Utils {
                         }
                         eventType = parser.next();
                     }
-                    editor.apply();
+                    editor.commit();
                     Logger.printInfo(() -> "Successfully seeded " + prefs.getAll().size() + " Phenotype flags into in-memory SharedPreferences");
                 } catch (Exception e) {
                     Logger.printInfo(() -> "Phenotype asset parsing failed: " + e.getMessage());
