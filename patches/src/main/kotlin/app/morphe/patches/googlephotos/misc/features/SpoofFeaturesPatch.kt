@@ -9,17 +9,21 @@ import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.stringsOption
+import app.morphe.util.findMutableMethodOf
 import app.morphe.util.getReference
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21c
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction21c
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 
 @Suppress("unused")
 val spoofFeaturesPatch = bytecodePatch(
     name = "Spoof features",
-    description = "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage.",
+    description = "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
 ) {
-    compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)
+    compatibleWith(AppCompatibilities.GOOGLE_PHOTOS, AppCompatibilities.MORPHE_PHOTOS)
 
     dependsOn(spoofBuildInfoPatch)
 
@@ -28,19 +32,6 @@ val spoofFeaturesPatch = bytecodePatch(
         default = listOf(
             "com.google.android.apps.photos.NEXUS_PRELOAD",
             "com.google.android.apps.photos.nexus_preload",
-        ),
-        title = "Features to enable",
-        description = "Google Pixel exclusive features to enable. Features up to Pixel XL enable the unlimited storage feature.",
-        required = true,
-    )
-
-    val featuresToDisable by stringsOption(
-        key = "featuresToDisable",
-        default = listOf(
-            "com.google.android.apps.photos.PIXEL_2017_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2018_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2019_MIDYEAR_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2019_PRELOAD",
             "com.google.android.feature.PIXEL_EXPERIENCE",
             "com.google.android.feature.PIXEL_2017_EXPERIENCE",
             "com.google.android.feature.PIXEL_2018_EXPERIENCE",
@@ -61,9 +52,21 @@ val spoofFeaturesPatch = bytecodePatch(
             "com.google.android.feature.PIXEL_2026_MIDYEAR_EXPERIENCE",
             "com.google.android.feature.PIXEL_2026_EXPERIENCE",
         ),
+        title = "Features to enable",
+        description = "Google Pixel exclusive features to enable.",
+        required = true,
+    )
+
+    val featuresToDisable by stringsOption(
+        key = "featuresToDisable",
+        default = listOf(
+            "com.google.android.apps.photos.PIXEL_2017_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2018_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2019_MIDYEAR_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2019_PRELOAD",
+        ),
         title = "Features to disable",
-        description = "Google Pixel exclusive features to disable." +
-            "Features after Pixel XL may have to be disabled for unlimited storage depending on the device.",
+        description = "Google Pixel exclusive features to disable.",
         required = true,
     )
 
@@ -74,23 +77,32 @@ val spoofFeaturesPatch = bytecodePatch(
         @Suppress("NAME_SHADOWING")
         val featuresToDisable = featuresToDisable!!.toSet()
 
-        InitializeFeaturesEnumFingerprint.method.apply {
-            instructions.filter { it.opcode == Opcode.CONST_STRING }.forEach {
-                val feature = it.getReference<StringReference>()!!.string
+        getAllClassesWithStrings().forEach { classDef ->
+            val mutableClass by lazy { mutableClassDefBy(classDef) }
 
-                val spoofedFeature = when (feature) {
-                    in featuresToEnable -> "android.hardware.wifi"
-                    in featuresToDisable -> "dummy"
-                    else -> return@forEach
+            classDef.methods.forEach classLoop@{ method ->
+                val implementation = method.implementation ?: return@classLoop
+                val mutableMethod by lazy { mutableClass.findMutableMethodOf(method) }
+
+                implementation.instructions.forEachIndexed { index, instruction ->
+                    val string = ((instruction as? Instruction21c)?.reference as? StringReference)?.string
+                        ?: return@forEachIndexed
+
+                    val transformedString = when (string) {
+                        in featuresToEnable -> "android.hardware.wifi"
+                        in featuresToDisable -> "dummy"
+                        else -> return@forEachIndexed
+                    }
+
+                    mutableMethod.replaceInstruction(
+                        index,
+                        BuilderInstruction21c(
+                            Opcode.CONST_STRING,
+                            instruction.registerA,
+                            ImmutableStringReference(transformedString),
+                        ),
+                    )
                 }
-
-                val constStringIndex = it.location.index
-                val constStringRegister = (it as OneRegisterInstruction).registerA
-
-                replaceInstruction(
-                    constStringIndex,
-                    "const-string v$constStringRegister, \"$spoofedFeature\"",
-                )
             }
         }
     }

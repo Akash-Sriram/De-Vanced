@@ -152,9 +152,14 @@ fun gmsCoreSupportPatch(
         }
 
         fun packageNameTransform(fromPackageName: String, toPackageName: String): (String) -> String? = { string ->
-            when (string) {
-                "$fromPackageName.SuggestionProvider",
-                "$fromPackageName.fileprovider",
+            when {
+                string == "$fromPackageName.SuggestionProvider" ||
+                string == "$fromPackageName.fileprovider" ||
+                string.startsWith("$fromPackageName.mars.") ||
+                string.startsWith("$fromPackageName.photoeditor.") ||
+                string.startsWith("$fromPackageName.videocomposition.") ||
+                string.startsWith("$fromPackageName.mediastore.") ||
+                string.startsWith("content://$fromPackageName.")
                 -> string.replace(fromPackageName, toPackageName)
 
                 else -> null
