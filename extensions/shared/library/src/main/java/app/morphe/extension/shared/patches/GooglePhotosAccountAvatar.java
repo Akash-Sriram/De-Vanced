@@ -67,7 +67,7 @@ final class GooglePhotosAccountAvatar {
     private static final String ACCOUNT_TYPE = "app.revanced";
     private static final String RESOURCE_PACKAGE_NAME = "com.google.android.apps.photos";
     private static final String PROFILE_TOKEN_TYPE =
-            "oauth2:openid profile https://www.googleapis.com/auth/mobileapps.native "
+            "oauth2:https://www.googleapis.com/auth/userinfo.profile "
                     + "https://www.googleapis.com/auth/photos.native";
     private static final String USER_INFO_URL =
             "https://www.googleapis.com/oauth2/v3/userinfo";
@@ -329,9 +329,8 @@ final class GooglePhotosAccountAvatar {
                         refreshDifferentAccount = selectedAccountName != null;
                     }
                 } catch (Exception exception) {
-                    Logger.printException(
-                            () -> "Could not load the Google Photos account avatar",
-                            exception
+                    Logger.printDebug(
+                            () -> "Could not load the Google Photos account avatar: " + exception.getMessage()
                     );
                     refreshDifferentAccount = selectedAccountName != null
                             && !sameAccount(accountName, selectedAccountName);
@@ -344,9 +343,8 @@ final class GooglePhotosAccountAvatar {
             });
         } catch (Exception exception) {
             FETCHING_ACCOUNT.compareAndSet(accountName, null);
-            Logger.printException(
-                    () -> "Could not request the Google Photos profile token",
-                    exception
+            Logger.printDebug(
+                    () -> "Could not request the Google Photos profile token: " + exception.getMessage()
             );
         }
     }
