@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "appNames": {
     "com.google.android.apps.photos": "Google Photos",
     "app.morphe.android.apps.photos": "Google Photos (Morphe)"
@@ -83,11 +83,49 @@
       "options": []
     },
     {
+      "name": "Phenotype assets",
+      "description": "Bundles official Google Photos Phenotype flags into the APK assets.",
+      "use": true,
+      "dependencies": [],
+      "compatiblePackages": {
+        "com.google.android.apps.photos": null,
+        "app.morphe.android.apps.photos": null
+      },
+      "compatibility": [
+        {
+          "name": "Google Photos",
+          "packageName": "com.google.android.apps.photos",
+          "description": null,
+          "appIconColor": 16531260,
+          "targets": [
+            {
+              "version": "",
+              "experimental": false
+            }
+          ]
+        },
+        {
+          "name": "Google Photos (Morphe)",
+          "packageName": "app.morphe.android.apps.photos",
+          "description": null,
+          "appIconColor": 16531260,
+          "targets": [
+            {
+              "version": "",
+              "experimental": false
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Spoof features",
       "description": "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
       "use": true,
       "dependencies": [
         "BytecodePatch",
+        "ResourcePatch",
         "BytecodePatch"
       ],
       "compatiblePackages": {

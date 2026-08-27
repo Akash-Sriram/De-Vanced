@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.3.0...v1.4.0) (2026-08-27)
+
+
+### Features
+
+* **photos:** bundle full 223KB official phenotype flags for modern floating pill navigation ([6977531](https://github.com/Akash-Sriram/De-Vanced/commit/6977531df9f843e7a7867bb2f9cee02c285a2287))
+
 # [1.3.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.2.0...v1.3.0) (2026-08-27)
 
 
