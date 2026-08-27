@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.5.1...v1.6.0) (2026-08-27)
+
+
+### Features
+
+* **googlephotos:** bundle verified floating pill Phenotype XML and hook Application early seeding ([ad3efba](https://github.com/Akash-Sriram/De-Vanced/commit/ad3efbaf4bc2b162295090d9041e8ae67dc733c5))
+
 ## [1.5.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.5.0...v1.5.1) (2026-08-27)
 
 
