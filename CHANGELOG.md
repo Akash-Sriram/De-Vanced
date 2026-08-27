@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.2.0...v1.3.0) (2026-08-27)
+
+
+### Features
+
+* **photos:** bundle official phenotype flags and auto-seed in-memory on first launch ([d3d112b](https://github.com/Akash-Sriram/De-Vanced/commit/d3d112be46b40daf78b647a0bf01ebddab7e90aa))
+
 # [1.2.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.1.0...v1.2.0) (2026-08-27)
 
 

@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "appNames": {
     "com.google.android.apps.photos": "Google Photos",
     "app.morphe.android.apps.photos": "Google Photos (Morphe)"
@@ -87,6 +87,7 @@
       "description": "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
       "use": true,
       "dependencies": [
+        "BytecodePatch",
         "BytecodePatch"
       ],
       "compatiblePackages": {
