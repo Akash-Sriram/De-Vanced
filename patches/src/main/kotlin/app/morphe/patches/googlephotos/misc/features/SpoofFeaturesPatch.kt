@@ -25,7 +25,10 @@ val spoofFeaturesPatch = bytecodePatch(
 ) {
     compatibleWith(AppCompatibilities.GOOGLE_PHOTOS, AppCompatibilities.MORPHE_PHOTOS)
 
-    dependsOn(spoofBuildInfoPatch)
+    dependsOn(
+        spoofBuildInfoPatch,
+        app.morphe.patches.googlephotos.misc.extension.sharedExtensionPatch,
+    )
 
     val featuresToEnable by stringsOption(
         key = "featuresToEnable",

@@ -424,6 +424,48 @@ public class Utils {
 
         // Trigger in-app update check for Google Photos Patched releases
         app.morphe.extension.shared.updater.GitHubReleaseChecker.checkUpdateOnStartup(appContext);
+
+        // Seed embedded Phenotype flags for Google Photos on first launch
+        seedPhenotypeFlags(appContext);
+    }
+
+    public static void seedPhenotypeFlags(Context context) {
+        try {
+            android.content.SharedPreferences prefs = context.getSharedPreferences("com.google.android.apps.photos.phenotype", Context.MODE_PRIVATE);
+            if (prefs.getAll().size() < 10) {
+                try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml")) {
+                    org.xmlpull.v1.XmlPullParser parser = android.util.Xml.newPullParser();
+                    parser.setInput(in, "UTF-8");
+                    android.content.SharedPreferences.Editor editor = prefs.edit();
+                    int eventType = parser.getEventType();
+                    while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                        if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                            String tag = parser.getName();
+                            String name = parser.getAttributeValue(null, "name");
+                            String value = parser.getAttributeValue(null, "value");
+                            if (name != null) {
+                                if ("boolean".equals(tag) && value != null) {
+                                    editor.putBoolean(name, Boolean.parseBoolean(value));
+                                } else if ("long".equals(tag) && value != null) {
+                                    try { editor.putLong(name, Long.parseLong(value)); } catch (Exception ignored) {}
+                                } else if ("float".equals(tag) && value != null) {
+                                    try { editor.putFloat(name, Float.parseFloat(value)); } catch (Exception ignored) {}
+                                } else if ("string".equals(tag)) {
+                                    editor.putString(name, parser.nextText());
+                                }
+                            }
+                        }
+                        eventType = parser.next();
+                    }
+                    editor.apply();
+                    Logger.printInfo(() -> "Successfully seeded " + prefs.getAll().size() + " Phenotype flags into in-memory SharedPreferences");
+                } catch (Exception e) {
+                    Logger.printInfo(() -> "Phenotype asset parsing failed: " + e.getMessage());
+                }
+            }
+        } catch (Throwable t) {
+            Logger.printException(() -> "Error in seedPhenotypeFlags", t);
+        }
     }
 
     public static void setClipboard(CharSequence text) {
