@@ -9,9 +9,9 @@ import app.morphe.patches.googlephotos.misc.gms.Constants.PHOTOS_MAIN_ACTIVITY_C
 
 internal object HomeActivityOnCreateFingerprint : Fingerprint(
     definingClass = PHOTOS_MAIN_ACTIVITY_CLASS_TYPE,
-    name = "<init>",
+    name = "onCreate",
     returnType = "V",
-    parameters = listOf(),
+    parameters = listOf("Landroid/os/Bundle;"),
 )
 
 /**
