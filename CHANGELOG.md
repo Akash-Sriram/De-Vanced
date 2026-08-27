@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.4.0...v1.5.0) (2026-08-27)
+
+
+### Features
+
+* **photos:** add Google Photos avatar bridge and Play Services signature bypass ([#114](https://github.com/Akash-Sriram/De-Vanced/issues/114)) ([9e29ee7](https://github.com/Akash-Sriram/De-Vanced/commit/9e29ee7beaeeb43576a047568debcd44a7b7cad3))
+
 # [1.4.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.3.0...v1.4.0) (2026-08-27)
 
 

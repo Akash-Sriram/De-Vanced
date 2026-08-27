@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-08-27T12:31:42",
-  "description": "# [1.4.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.3.0...v1.4.0) (2026-08-27)\n\n\n### Features\n\n* **photos:** bundle full 223KB official phenotype flags for modern floating pill navigation ([6977531](https://github.com/Akash-Sriram/De-Vanced/commit/6977531df9f843e7a7867bb2f9cee02c285a2287))",
-  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.4.0/patches-1.4.0.mpp",
+  "created_at": "2026-08-27T12:57:40",
+  "description": "# [1.5.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.4.0...v1.5.0) (2026-08-27)\n\n\n### Features\n\n* **photos:** add Google Photos avatar bridge and Play Services signature bypass ([#114](https://github.com/Akash-Sriram/De-Vanced/issues/114)) ([9e29ee7](https://github.com/Akash-Sriram/De-Vanced/commit/9e29ee7beaeeb43576a047568debcd44a7b7cad3))",
+  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.5.0/patches-1.5.0.mpp",
   "signature_download_url": "",
-  "version": "1.4.0"
+  "version": "1.5.0"
 }
