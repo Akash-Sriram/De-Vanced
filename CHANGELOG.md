@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.1.0...v1.2.0) (2026-08-27)
+
+
+### Features
+
+* **photos:** enable modern Pixel experience features across multi-DEX for redesigned Collections UI ([ad26f7e](https://github.com/Akash-Sriram/De-Vanced/commit/ad26f7eac45e52dab53c4949d76d7955f2d30617))
+
 # [1.1.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.0.8...v1.1.0) (2026-08-05)
 
 

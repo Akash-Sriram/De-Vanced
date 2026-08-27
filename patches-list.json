@@ -1,7 +1,8 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "appNames": {
-    "com.google.android.apps.photos": "Google Photos"
+    "com.google.android.apps.photos": "Google Photos",
+    "app.morphe.android.apps.photos": "Google Photos (Morphe)"
   },
   "patches": [
     {
@@ -83,18 +84,31 @@
     },
     {
       "name": "Spoof features",
-      "description": "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage.",
+      "description": "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
       "use": true,
       "dependencies": [
         "BytecodePatch"
       ],
       "compatiblePackages": {
-        "com.google.android.apps.photos": null
+        "com.google.android.apps.photos": null,
+        "app.morphe.android.apps.photos": null
       },
       "compatibility": [
         {
           "name": "Google Photos",
           "packageName": "com.google.android.apps.photos",
+          "description": null,
+          "appIconColor": 16531260,
+          "targets": [
+            {
+              "version": "",
+              "experimental": false
+            }
+          ]
+        },
+        {
+          "name": "Google Photos (Morphe)",
+          "packageName": "app.morphe.android.apps.photos",
           "description": null,
           "appIconColor": 16531260,
           "targets": [
@@ -109,26 +123,12 @@
         {
           "key": "featuresToEnable",
           "title": "Features to enable",
-          "description": "Google Pixel exclusive features to enable. Features up to Pixel XL enable the unlimited storage feature.",
+          "description": "Google Pixel exclusive features to enable.",
           "required": true,
           "type": "kotlin.collections.List<kotlin.String>",
           "default": [
             "com.google.android.apps.photos.NEXUS_PRELOAD",
-            "com.google.android.apps.photos.nexus_preload"
-          ],
-          "values": null
-        },
-        {
-          "key": "featuresToDisable",
-          "title": "Features to disable",
-          "description": "Google Pixel exclusive features to disable.Features after Pixel XL may have to be disabled for unlimited storage depending on the device.",
-          "required": true,
-          "type": "kotlin.collections.List<kotlin.String>",
-          "default": [
-            "com.google.android.apps.photos.PIXEL_2017_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2018_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2019_MIDYEAR_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2019_PRELOAD",
+            "com.google.android.apps.photos.nexus_preload",
             "com.google.android.feature.PIXEL_EXPERIENCE",
             "com.google.android.feature.PIXEL_2017_EXPERIENCE",
             "com.google.android.feature.PIXEL_2018_EXPERIENCE",
@@ -148,6 +148,20 @@
             "com.google.android.feature.PIXEL_2025_EXPERIENCE",
             "com.google.android.feature.PIXEL_2026_MIDYEAR_EXPERIENCE",
             "com.google.android.feature.PIXEL_2026_EXPERIENCE"
+          ],
+          "values": null
+        },
+        {
+          "key": "featuresToDisable",
+          "title": "Features to disable",
+          "description": "Google Pixel exclusive features to disable.",
+          "required": true,
+          "type": "kotlin.collections.List<kotlin.String>",
+          "default": [
+            "com.google.android.apps.photos.PIXEL_2017_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2018_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2019_MIDYEAR_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2019_PRELOAD"
           ],
           "values": null
         }
