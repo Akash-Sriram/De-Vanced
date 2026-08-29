@@ -27,6 +27,7 @@ import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -110,6 +111,7 @@ final class GooglePhotosAccountAvatar {
         View root = activity.getWindow().getDecorView();
         observeWindowRoot(activity, root);
         scanWindowRoots(activity, true);
+        prefetchRegisteredAccounts(activity, root);
         refresh(activity, root);
 
         // A few bounded follow-up scans catch windows created immediately after HomeActivity.
@@ -194,6 +196,7 @@ final class GooglePhotosAccountAvatar {
 
         applyAvatar(activity, root);
         applyAvailableAccountsAvatars(activity, root);
+        findAndApplyAccountRowAvatars(activity, root);
 
         if (account != null
                 && (avatar == null || !sameAccount(account.name, avatarAccountName))) {
@@ -470,7 +473,31 @@ final class GooglePhotosAccountAvatar {
         }
     }
 
+    private static void prefetchRegisteredAccounts(Activity activity, View root) {
+        Utils.runOnBackgroundThread(() -> {
+            try {
+                AccountManager accountManager = AccountManager.get(activity);
+                Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+                for (Account acc : accounts) {
+                    Bitmap cached = readCachedAvatar(activity, acc.name);
+                    if (cached == null) {
+                        requestProfileToken(activity, root, acc);
+                    }
+                }
+            } catch (Exception e) {
+                Logger.printException(() -> "Could not prefetch MicroG accounts avatar", e);
+            }
+        });
+    }
+
     private static final String[] AVAILABLE_ACCOUNT_AVATAR_IDS = new String[] {
+            "sud_account_avatar",
+            "photos_settings_account_avatar",
+            "photos_settings_account_adapter_avatar",
+            "photos_quotamanagement_account_avatar_menu_item",
+            "ring_avatar",
+            "sheet_avatar",
+            "source_avatar",
             "og_bento_available_account_avatar",
             "og_available_account_avatar",
             "og_bento_header_account_avatar",
@@ -529,6 +556,73 @@ final class GooglePhotosAccountAvatar {
                 findAllViewsWithId(vg.getChildAt(i), targetId, outList);
             }
         }
+    }
+
+    private static void findAndApplyAccountRowAvatars(Activity activity, View root) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+
+        AccountManager accountManager = AccountManager.get(activity);
+        Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (accounts.length == 0) return;
+
+        List<TextView> emailTextViews = new ArrayList<>();
+        findEmailTextViews(root, emailTextViews);
+
+        for (TextView tv : emailTextViews) {
+            String email = extractEmail(tv.getText());
+            if (email == null) email = extractEmail(tv.getContentDescription());
+            if (email == null) continue;
+
+            Account account = findAccount(accounts, email);
+            if (account == null) continue;
+
+            Bitmap bmp = readCachedAvatar(activity, account.name);
+            if (bmp == null) {
+                requestProfileToken(activity, root, account);
+                continue;
+            }
+
+            ViewParent parent = tv.getParent();
+            if (parent instanceof ViewGroup) {
+                ViewGroup row = (ViewGroup) parent;
+                ImageView avatarIv = findSiblingImageView(row, tv);
+                if (avatarIv != null) {
+                    applyBentoAvatar(avatarIv, bmp);
+                }
+            }
+        }
+    }
+
+    private static void findEmailTextViews(View view, List<TextView> outList) {
+        if (view == null) return;
+        if (view instanceof TextView) {
+            TextView tv = (TextView) view;
+            if (extractEmail(tv.getText()) != null || extractEmail(tv.getContentDescription()) != null) {
+                outList.add(tv);
+            }
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                findEmailTextViews(vg.getChildAt(i), outList);
+            }
+        }
+    }
+
+    @Nullable
+    private static ImageView findSiblingImageView(ViewGroup row, View target) {
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View child = row.getChildAt(i);
+            if (child == target) continue;
+            if (child instanceof ImageView) {
+                return (ImageView) child;
+            }
+            if (child instanceof ViewGroup) {
+                ImageView inner = findFirstImageView((ViewGroup) child);
+                if (inner != null) return inner;
+            }
+        }
+        return null;
     }
 
     /**
