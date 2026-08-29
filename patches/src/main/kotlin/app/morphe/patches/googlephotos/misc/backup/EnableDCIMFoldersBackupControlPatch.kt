@@ -126,6 +126,9 @@ val enableDCIMFoldersBackupControlPatch = bytecodePatch(
                 add(clonedLegacyMethod)
             }
         }
+
+        // 3. Make BackupNotificationManager safe from null-pointer crashes during sync scheduling
+        BackupNotificationManagerFingerprint.methodOrNull?.addInstructions(0, "return-void")
     }
 }
 

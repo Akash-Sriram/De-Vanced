@@ -37,3 +37,13 @@ internal object LegacyDCIMCheckFingerprint : Fingerprint(
     }
 )
 
+internal object BackupNotificationManagerFingerprint : Fingerprint(
+    custom = { method, classDef ->
+        classDef.methods.any { m ->
+            m.implementation?.instructions?.any {
+                it.getReference<StringReference>()?.string == "BackupNotificationMgr"
+            } == true
+        } && method.name == "b"
+    }
+)
+
