@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-08-29T21:24:32",
-  "description": "# [1.7.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.8...v1.7.0) (2026-08-29)\n\n\n### Features\n\n* **photos:** enable all Google Photos patches by default and prune obsolete legacy patches ([e6f9655](https://github.com/Akash-Sriram/De-Vanced/commit/e6f965520fa9fa0f1984ffe5d2789bb72fc4119b))",
-  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.7.0/patches-1.7.0.mpp",
+  "created_at": "2026-08-29T22:14:55",
+  "description": "# [1.8.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.7.0...v1.8.0) (2026-08-29)\n\n\n### Features\n\n* **photos:** pre-fetch avatars on launch and bind account row avatars dynamically ([c921078](https://github.com/Akash-Sriram/De-Vanced/commit/c9210781302fa96c4a3205173d47698c83f26652))",
+  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.8.0/patches-1.8.0.mpp",
   "signature_download_url": "",
-  "version": "1.7.0"
+  "version": "1.8.0"
 }

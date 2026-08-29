@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.7.0...v1.8.0) (2026-08-29)
+
+
+### Features
+
+* **photos:** pre-fetch avatars on launch and bind account row avatars dynamically ([c921078](https://github.com/Akash-Sriram/De-Vanced/commit/c9210781302fa96c4a3205173d47698c83f26652))
+
 # [1.7.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.8...v1.7.0) (2026-08-29)
 
 
