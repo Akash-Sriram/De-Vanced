@@ -1,3 +1,10 @@
+## [1.6.4](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.3...v1.6.4) (2026-08-29)
+
+
+### Bug Fixes
+
+* **googlephotos:** use single userinfo.profile scope and support direct avatar fallback from accountManager ([a3bfb5a](https://github.com/Akash-Sriram/De-Vanced/commit/a3bfb5a746decfbe019c7968c56e509d01e5ed81))
+
 ## [1.6.3](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.2...v1.6.3) (2026-08-29)
 
 
