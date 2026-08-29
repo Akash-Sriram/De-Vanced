@@ -67,10 +67,9 @@ final class GooglePhotosAccountAvatar {
     private static final String ACCOUNT_TYPE = "app.revanced";
     private static final String RESOURCE_PACKAGE_NAME = "com.google.android.apps.photos";
     private static final String PROFILE_TOKEN_TYPE =
-            "oauth2:https://www.googleapis.com/auth/userinfo.profile "
-                    + "https://www.googleapis.com/auth/photos.native";
+            "oauth2:https://www.googleapis.com/auth/userinfo.profile";
     private static final String USER_INFO_URL =
-            "https://www.googleapis.com/oauth2/v3/userinfo";
+            "https://www.googleapis.com/oauth2/v1/userinfo";
 
     private static final String PREFS_NAME = "morphe_google_photos_avatar";
     private static final String PREF_SELECTED_ACCOUNT = "selected_account";
@@ -307,13 +306,37 @@ final class GooglePhotosAccountAvatar {
             Utils.runOnBackgroundThread(() -> {
                 boolean refreshDifferentAccount = false;
                 try {
-                    Bundle result = future.getResult();
-                    String token = result.getString(AccountManager.KEY_AUTHTOKEN);
-                    if (token == null || token.isEmpty()) {
-                        throw new IllegalStateException("GmsCore returned no profile token");
+                    Bitmap downloadedAvatar = null;
+
+                    AccountManager accountManager = AccountManager.get(activity);
+                    String directAvatarUrl = accountManager.getUserData(account, "avatar");
+                    if (directAvatarUrl == null || directAvatarUrl.isEmpty()) {
+                        directAvatarUrl = accountManager.getUserData(account, "picture_url");
+                    }
+                    if (directAvatarUrl != null && !directAvatarUrl.isEmpty()) {
+                        try {
+                            HttpURLConnection directConn = openConnection(directAvatarUrl);
+                            try {
+                                if (directConn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                                    try (InputStream stream = new BufferedInputStream(directConn.getInputStream())) {
+                                        downloadedAvatar = getCircularBitmap(BitmapFactory.decodeStream(stream));
+                                    }
+                                }
+                            } finally {
+                                directConn.disconnect();
+                            }
+                        } catch (Exception ignored) {
+                        }
                     }
 
-                    Bitmap downloadedAvatar = downloadAvatar(token);
+                    if (downloadedAvatar == null) {
+                        Bundle result = future.getResult();
+                        String token = result.getString(AccountManager.KEY_AUTHTOKEN);
+                        if (token != null && !token.isEmpty()) {
+                            downloadedAvatar = downloadAvatar(token);
+                        }
+                    }
+
                     if (downloadedAvatar == null) {
                         throw new IllegalStateException("Google user-info returned no avatar");
                     }
