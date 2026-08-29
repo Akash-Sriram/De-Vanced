@@ -1,3 +1,10 @@
+## [1.6.6](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.5...v1.6.6) (2026-08-29)
+
+
+### Bug Fixes
+
+* **photos:** render avatar in clean circle with anti-aliased border ring ([5411a4e](https://github.com/Akash-Sriram/De-Vanced/commit/5411a4eac78e9e4a22757ff34ecf114e5be464d0))
+
 ## [1.6.5](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.4...v1.6.5) (2026-08-29)
 
 
