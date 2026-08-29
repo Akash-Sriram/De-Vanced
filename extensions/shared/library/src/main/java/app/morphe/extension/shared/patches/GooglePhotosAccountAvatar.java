@@ -411,62 +411,17 @@ final class GooglePhotosAccountAvatar {
             }
         }
 
-        int selectedDiscId = getResourceId(activity, "selected_account_disc");
-        if (selectedDiscId != 0) {
-            View selectedDisc = root.findViewById(selectedDiscId);
-            if (selectedDisc != null) {
-                applyDiscAvatar(selectedDisc, currentAvatar);
-            }
-        }
-
-        int toolbarApdId = getResourceId(activity, "og_selected_account_disc_apd");
-        if (toolbarApdId != 0) {
-            View apd = root.findViewById(toolbarApdId);
-            if (apd != null) {
-                applyDiscAvatar(apd, currentAvatar);
-            }
-        }
-
         int accountSheetAvatarId = getResourceId(activity, "og_bento_selected_account_avatar");
         if (accountSheetAvatarId != 0) {
             View accountSheetAvatar = root.findViewById(accountSheetAvatarId);
-            if (accountSheetAvatar != null) {
-                applyDiscAvatar(accountSheetAvatar, currentAvatar);
+            if (accountSheetAvatar instanceof ImageView) {
+                ((ImageView) accountSheetAvatar).setScaleType(ImageView.ScaleType.CENTER_CROP);
+                ((ImageView) accountSheetAvatar).setImageBitmap(currentAvatar);
             }
         }
 
         // Also recursively scan for the Bento Account Sheet avatar ImageView
         findAndApplyAvatars(root, currentAvatar, currentAccount);
-    }
-
-    private static void applyDiscAvatar(View discView, Bitmap bitmap) {
-        if (!(discView instanceof ViewGroup)) return;
-        ViewGroup group = (ViewGroup) discView;
-
-        ImageView overlay = null;
-        for (int i = 0; i < group.getChildCount(); i++) {
-            View child = group.getChildAt(i);
-            if (ACCOUNT_AVATAR_OVERLAY_TAG.equals(child.getTag()) && child instanceof ImageView) {
-                overlay = (ImageView) child;
-                break;
-            }
-        }
-
-        if (overlay == null) {
-            overlay = new ImageView(group.getContext());
-            overlay.setTag(ACCOUNT_AVATAR_OVERLAY_TAG);
-            overlay.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    Gravity.CENTER
-            );
-            group.addView(overlay, lp);
-        }
-
-        overlay.setImageBitmap(bitmap);
-        overlay.bringToFront();
-        overlay.setVisibility(View.VISIBLE);
     }
 
     private static void findAndApplyAvatars(View view, Bitmap bitmap, String accountName) {
@@ -480,17 +435,9 @@ final class GooglePhotosAccountAvatar {
                 if (desc != null && desc.toString().toLowerCase().contains("account")) {
                     iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     iv.setImageBitmap(bitmap);
-                    ViewParent parent = iv.getParent();
-                    if (parent instanceof ViewGroup) {
-                        applyDiscAvatar((ViewGroup) parent, bitmap);
-                    }
                 } else if (iv.getId() == View.NO_ID && width > 100 && height > 100) {
                     iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
                     iv.setImageBitmap(bitmap);
-                    ViewParent parent = iv.getParent();
-                    if (parent instanceof ViewGroup) {
-                        applyDiscAvatar((ViewGroup) parent, bitmap);
-                    }
                 }
             }
         } else if (view instanceof ViewGroup) {
@@ -515,104 +462,42 @@ final class GooglePhotosAccountAvatar {
         paint.setAntiAlias(true);
         paint.setFilterBitmap(true);
         paint.setDither(true);
+        paint.setColor(0xFF000000);
 
         canvas.drawARGB(0, 0, 0, 0);
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint);
+
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
         Rect srcRect = new Rect(
                 (width - size) / 2,
                 (height - size) / 2,
                 (width + size) / 2,
                 (height + size) / 2
         );
-        RectF dstRect = new RectF(0, 0, size, size);
-
-        canvas.drawRoundRect(dstRect, size / 2f, size / 2f, paint);
-        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        Rect dstRect = new Rect(0, 0, size, size);
         canvas.drawBitmap(src, srcRect, dstRect, paint);
         paint.setXfermode(null);
+
+        Paint ringPaint = new Paint();
+        ringPaint.setAntiAlias(true);
+        ringPaint.setStyle(Paint.Style.STROKE);
+        float strokeWidth = Math.max(2f, size * 0.025f);
+        ringPaint.setStrokeWidth(strokeWidth);
+        ringPaint.setColor(0x25000000);
+        canvas.drawCircle(size / 2f, size / 2f, (size / 2f) - (strokeWidth / 2f), ringPaint);
 
         return output;
     }
 
-    private static void applyAccountSheetAvatar(
-            @Nullable View accountSheetAvatar,
-            Bitmap bitmap,
-            String accountName
-    ) {
-        if (!isCurrentAvatar(bitmap, accountName)
-                || !(accountSheetAvatar instanceof ViewGroup)) {
-            return;
-        }
-
-        ViewGroup group = (ViewGroup) accountSheetAvatar;
-        ImageView targetImageView = findTargetImageView(group);
-        if (targetImageView != null) {
-            targetImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            targetImageView.setImageBitmap(bitmap);
-            return;
-        }
-
-        ImageView overlay = null;
-        for (int index = 0; index < group.getChildCount(); index++) {
-            View child = group.getChildAt(index);
-            if (ACCOUNT_AVATAR_OVERLAY_TAG.equals(child.getTag()) && child instanceof ImageView) {
-                overlay = (ImageView) child;
-                break;
-            }
-        }
-
-        if (overlay == null) {
-            overlay = new ImageView(group.getContext());
-            overlay.setTag(ACCOUNT_AVATAR_OVERLAY_TAG);
-            overlay.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            group.addView(
-                    overlay,
-                    new ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-            );
-        }
-        overlay.setImageBitmap(bitmap);
-    }
-
-    private static boolean shouldScheduleAccountSheet(View view, String accountName) {
-        String previouslyScheduledAccount = SCHEDULED_ACCOUNT_SHEETS.put(view, accountName);
-        return !sameAccount(accountName, previouslyScheduledAccount);
-    }
-
-    @Nullable
-    private static ImageView findTargetImageView(ViewGroup group) {
-        for (int index = 0; index < group.getChildCount(); index++) {
-            View child = group.getChildAt(index);
-            if (child instanceof ImageView
-                    && !ACCOUNT_AVATAR_OVERLAY_TAG.equals(child.getTag())) {
-                return (ImageView) child;
-            }
-        }
-
-        for (int index = 0; index < group.getChildCount(); index++) {
-            View child = group.getChildAt(index);
-            if (child instanceof ViewGroup) {
-                ImageView nested = findTargetImageView((ViewGroup) child);
-                if (nested != null) return nested;
-            }
-        }
-        return null;
-    }
-
     private static void updateImageView(ImageView imageView, Bitmap bitmap, String accountName) {
-        if (!isCurrentAvatar(bitmap, accountName)) return;
-
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setImageBitmap(bitmap);
 
         String previouslyScheduledAccount = SCHEDULED_TOOLBAR_AVATARS.put(imageView, accountName);
         if (!sameAccount(accountName, previouslyScheduledAccount)) {
-            imageView.postDelayed(() -> setImageBitmap(imageView, bitmap, accountName), 100);
-            imageView.postDelayed(() -> setImageBitmap(imageView, bitmap, accountName), 500);
-            imageView.postDelayed(() -> setImageBitmap(imageView, bitmap, accountName), 1_500);
-            imageView.postDelayed(() -> setImageBitmap(imageView, bitmap, accountName), 5_000);
-            imageView.postDelayed(() -> setImageBitmap(imageView, bitmap, accountName), 12_000);
+            imageView.postDelayed(() -> imageView.setImageBitmap(bitmap), 100);
+            imageView.postDelayed(() -> imageView.setImageBitmap(bitmap), 500);
+            imageView.postDelayed(() -> imageView.setImageBitmap(bitmap), 1_500);
         }
     }
 
