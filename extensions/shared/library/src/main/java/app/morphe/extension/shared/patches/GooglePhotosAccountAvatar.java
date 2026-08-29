@@ -43,6 +43,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -168,10 +169,31 @@ final class GooglePhotosAccountAvatar {
     private static void refresh(Activity activity, View root) {
         if (activity.isFinishing() || activity.isDestroyed()) return;
 
-        Account account = resolveSelectedAccount(activity, root);
-        if (account != null) activateAccount(activity, account.name);
+        boolean signedOutInUi = isToolbarDiscShowingSignedOut(activity, root);
+        if (signedOutInUi) {
+            avatar = null;
+            avatarAccountName = null;
+            selectedAccountName = null;
+            activity.getSharedPreferences(PREFS_NAME, 0)
+                    .edit()
+                    .remove(PREF_SELECTED_ACCOUNT)
+                    .apply();
+        }
+
+        Account account = signedOutInUi ? null : resolveSelectedAccount(activity, root);
+        if (account != null) {
+            activateAccount(activity, account.name);
+        } else if (!signedOutInUi) {
+            Account[] registered = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
+            if (registered.length == 0) {
+                avatar = null;
+                avatarAccountName = null;
+                selectedAccountName = null;
+            }
+        }
 
         applyAvatar(activity, root);
+        applyAvailableAccountsAvatars(activity, root);
 
         if (account != null
                 && (avatar == null || !sameAccount(account.name, avatarAccountName))) {
@@ -179,8 +201,32 @@ final class GooglePhotosAccountAvatar {
         }
     }
 
+    private static boolean isToolbarDiscShowingSignedOut(Activity activity, View root) {
+        int selectedAccountId = getResourceId(activity, "selected_account_disc");
+        if (selectedAccountId != 0) {
+            View disc = root.findViewById(selectedAccountId);
+            if (disc != null && disc.isShown()) {
+                String email = findEmailInViewAndParents(disc);
+                return email == null;
+            }
+        }
+        int toolbarAvatarId = getResourceId(activity, "og_apd_internal_image_view");
+        if (toolbarAvatarId != 0) {
+            View avatarView = root.findViewById(toolbarAvatarId);
+            if (avatarView != null && avatarView.isShown()) {
+                String email = findEmailInViewAndParents(avatarView);
+                return email == null;
+            }
+        }
+        return false;
+    }
+
     @Nullable
     private static Account resolveSelectedAccount(Activity activity, View root) {
+        if (isToolbarDiscShowingSignedOut(activity, root)) {
+            return null;
+        }
+
         String accountFromUi = findSelectedAccountName(activity, root);
         AccountManager accountManager = AccountManager.get(activity);
         Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
@@ -200,9 +246,7 @@ final class GooglePhotosAccountAvatar {
         Account remembered = findAccount(accounts, rememberedName);
         if (remembered != null) return remembered;
 
-        // Choosing accounts[0] when several accounts are present can show another user's avatar.
-        // Only fall back automatically when there is no ambiguity.
-        return accounts.length == 1 ? accounts[0] : null;
+        return null;
     }
 
     @Nullable
@@ -403,6 +447,7 @@ final class GooglePhotosAccountAvatar {
             return;
         }
 
+        // Toolbar avatar (og_apd_internal_image_view is an ImageView).
         int toolbarAvatarId = getResourceId(activity, "og_apd_internal_image_view");
         if (toolbarAvatarId != 0) {
             View toolbarAvatar = root.findViewById(toolbarAvatarId);
@@ -411,41 +456,117 @@ final class GooglePhotosAccountAvatar {
             }
         }
 
-        int accountSheetAvatarId = getResourceId(activity, "og_bento_selected_account_avatar");
-        if (accountSheetAvatarId != 0) {
-            View accountSheetAvatar = root.findViewById(accountSheetAvatarId);
-            if (accountSheetAvatar instanceof ImageView) {
-                ((ImageView) accountSheetAvatar).setScaleType(ImageView.ScaleType.CENTER_CROP);
-                ((ImageView) accountSheetAvatar).setImageBitmap(currentAvatar);
+        // Account sheet avatar (og_bento_selected_account_avatar is a FrameLayout container;
+        // the actual ImageView is a child of it).
+        int accountSheetContainerId = getResourceId(activity, "og_bento_selected_account_avatar");
+        if (accountSheetContainerId != 0) {
+            View accountSheetContainer = root.findViewById(accountSheetContainerId);
+            if (accountSheetContainer instanceof ImageView) {
+                applyBentoAvatar((ImageView) accountSheetContainer, currentAvatar);
+            } else if (accountSheetContainer instanceof ViewGroup) {
+                ImageView inner = findFirstImageView((ViewGroup) accountSheetContainer);
+                if (inner != null) applyBentoAvatar(inner, currentAvatar);
             }
         }
-
-        // Also recursively scan for the Bento Account Sheet avatar ImageView
-        findAndApplyAvatars(root, currentAvatar, currentAccount);
     }
 
-    private static void findAndApplyAvatars(View view, Bitmap bitmap, String accountName) {
-        if (view instanceof ImageView) {
-            ImageView iv = (ImageView) view;
-            if (ACCOUNT_AVATAR_OVERLAY_TAG.equals(iv.getTag())) return;
-            int width = iv.getWidth();
-            int height = iv.getHeight();
-            if (width > 30 && height > 30 && Math.abs(width - height) <= 30) {
-                CharSequence desc = iv.getContentDescription();
-                if (desc != null && desc.toString().toLowerCase().contains("account")) {
-                    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                    iv.setImageBitmap(bitmap);
-                } else if (iv.getId() == View.NO_ID && width > 100 && height > 100) {
-                    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                    iv.setImageBitmap(bitmap);
-                }
-            }
-        } else if (view instanceof ViewGroup) {
-            ViewGroup vg = (ViewGroup) view;
-            for (int i = 0; i < vg.getChildCount(); i++) {
-                findAndApplyAvatars(vg.getChildAt(i), bitmap, accountName);
+    private static final String[] AVAILABLE_ACCOUNT_AVATAR_IDS = new String[] {
+            "og_bento_available_account_avatar",
+            "og_available_account_avatar",
+            "og_bento_header_account_avatar",
+            "og_compact_header_avatar",
+            "og_bento_card_avatar_image"
+    };
+
+    private static void applyAvailableAccountsAvatars(Activity activity, View root) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+
+        AccountManager accountManager = AccountManager.get(activity);
+        Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (accounts.length == 0) return;
+
+        List<View> avatarViews = new ArrayList<>();
+        for (String idName : AVAILABLE_ACCOUNT_AVATAR_IDS) {
+            int id = getResourceId(activity, idName);
+            if (id != 0) {
+                findAllViewsWithId(root, id, avatarViews);
             }
         }
+
+        for (View avatarView : avatarViews) {
+            String email = findEmailInViewAndParents(avatarView);
+            Account targetAccount = null;
+            if (email != null) {
+                targetAccount = findAccount(accounts, email);
+            } else if (accounts.length == 1) {
+                targetAccount = accounts[0];
+            }
+
+            if (targetAccount == null) continue;
+
+            Bitmap cachedBmp = readCachedAvatar(activity, targetAccount.name);
+            if (cachedBmp != null) {
+                if (avatarView instanceof ImageView) {
+                    applyBentoAvatar((ImageView) avatarView, cachedBmp);
+                } else if (avatarView instanceof ViewGroup) {
+                    ImageView inner = findFirstImageView((ViewGroup) avatarView);
+                    if (inner != null) applyBentoAvatar(inner, cachedBmp);
+                }
+            } else {
+                requestProfileToken(activity, root, targetAccount);
+            }
+        }
+    }
+
+    private static void findAllViewsWithId(View view, int targetId, List<View> outList) {
+        if (view == null) return;
+        if (view.getId() == targetId) {
+            outList.add(view);
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                findAllViewsWithId(vg.getChildAt(i), targetId, outList);
+            }
+        }
+    }
+
+    /**
+     * Applies the avatar bitmap to the large account-sheet ImageView,
+     * scaled to fit its measured pixel size.
+     */
+    private static void applyBentoAvatar(ImageView imageView, Bitmap bitmap) {
+        int viewSize = Math.min(imageView.getWidth(), imageView.getHeight());
+        Bitmap scaled = (viewSize > 0 && (bitmap.getWidth() != viewSize || bitmap.getHeight() != viewSize))
+                ? Bitmap.createScaledBitmap(bitmap, viewSize, viewSize, true)
+                : bitmap;
+        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        imageView.setImageBitmap(scaled);
+        // Retry after layout in case view wasn't measured yet.
+        imageView.postDelayed(() -> {
+            int sz = Math.min(imageView.getWidth(), imageView.getHeight());
+            if (sz > 0 && sz != scaled.getWidth()) {
+                imageView.setImageBitmap(Bitmap.createScaledBitmap(bitmap, sz, sz, true));
+            } else {
+                imageView.setImageBitmap(scaled);
+            }
+        }, 200);
+    }
+
+    /**
+     * Recursively finds the first ImageView descendant of the given ViewGroup.
+     */
+    @Nullable
+    private static ImageView findFirstImageView(ViewGroup parent) {
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (child instanceof ImageView) return (ImageView) child;
+            if (child instanceof ViewGroup) {
+                ImageView found = findFirstImageView((ViewGroup) child);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     @Nullable
@@ -490,20 +611,20 @@ final class GooglePhotosAccountAvatar {
     }
 
     private static void updateImageView(ImageView imageView, Bitmap bitmap, String accountName) {
-        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        imageView.setImageBitmap(bitmap);
+        // Scale the circular bitmap to exactly fit the view so it never overflows the ring boundary.
+        int viewSize = Math.min(imageView.getWidth(), imageView.getHeight());
+        Bitmap scaled = (viewSize > 0 && (bitmap.getWidth() != viewSize || bitmap.getHeight() != viewSize))
+                ? Bitmap.createScaledBitmap(bitmap, viewSize, viewSize, true)
+                : bitmap;
+
+        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        imageView.setImageBitmap(scaled);
 
         String previouslyScheduledAccount = SCHEDULED_TOOLBAR_AVATARS.put(imageView, accountName);
         if (!sameAccount(accountName, previouslyScheduledAccount)) {
-            imageView.postDelayed(() -> imageView.setImageBitmap(bitmap), 100);
-            imageView.postDelayed(() -> imageView.setImageBitmap(bitmap), 500);
-            imageView.postDelayed(() -> imageView.setImageBitmap(bitmap), 1_500);
-        }
-    }
-
-    private static void setImageBitmap(ImageView imageView, Bitmap bitmap, String accountName) {
-        if (imageView.isAttachedToWindow() && isCurrentAvatar(bitmap, accountName)) {
-            imageView.setImageBitmap(bitmap);
+            imageView.postDelayed(() -> imageView.setImageBitmap(scaled), 100);
+            imageView.postDelayed(() -> imageView.setImageBitmap(scaled), 500);
+            imageView.postDelayed(() -> imageView.setImageBitmap(scaled), 1_500);
         }
     }
 
