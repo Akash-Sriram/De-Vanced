@@ -1,3 +1,10 @@
+## [1.6.5](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.4...v1.6.5) (2026-08-29)
+
+
+### Bug Fixes
+
+* **photos:** resolve avatar loading with openid scope and dynamic view binding ([18315d8](https://github.com/Akash-Sriram/De-Vanced/commit/18315d89db51ded1a255395963de50695db53958))
+
 ## [1.6.4](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.3...v1.6.4) (2026-08-29)
 
 
