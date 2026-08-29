@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringRefere
 val spoofFeaturesPatch = bytecodePatch(
     name = "Spoof features",
     description = "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
+    default = true,
 ) {
     compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)
 

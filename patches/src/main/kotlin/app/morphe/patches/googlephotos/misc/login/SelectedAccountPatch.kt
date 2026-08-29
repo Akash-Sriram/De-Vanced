@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 val selectedAccountPatch = bytecodePatch(
     name = "Fix selected account persistence",
     description = "Prevents Google Photos from clearing the selected account after cold start when using MicroG.",
+    default = true,
 ) {
     compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)
 

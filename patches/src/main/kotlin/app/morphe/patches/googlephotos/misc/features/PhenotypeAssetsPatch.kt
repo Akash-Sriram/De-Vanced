@@ -7,6 +7,7 @@ import app.morphe.util.inputStreamFromBundledResource
 val phenotypeAssetsPatch = resourcePatch(
     name = "Phenotype assets",
     description = "Bundles official Google Photos Phenotype flags into the APK assets.",
+    default = true,
 ) {
     compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)
 
