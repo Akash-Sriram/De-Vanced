@@ -1,3 +1,10 @@
+## [1.6.7](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.6...v1.6.7) (2026-08-29)
+
+
+### Bug Fixes
+
+* **photos:** handle signed-out state and support avatar in account switcher list ([f7c82ee](https://github.com/Akash-Sriram/De-Vanced/commit/f7c82ee420526db3c10a721fcac6f3c915e00ecc))
+
 ## [1.6.6](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.5...v1.6.6) (2026-08-29)
 
 
