@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.2...v1.6.3) (2026-08-29)
+
+
+### Bug Fixes
+
+* **googlephotos:** prevent NullPointerException in BackupNotificationManager during local media sync scheduling ([7b481ae](https://github.com/Akash-Sriram/De-Vanced/commit/7b481ae5e61e2310c8f7813036bfda8f8194b4cc))
+
 ## [1.6.2](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.1...v1.6.2) (2026-08-27)
 
 
