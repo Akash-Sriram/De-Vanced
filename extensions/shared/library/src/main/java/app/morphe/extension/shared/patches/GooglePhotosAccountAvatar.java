@@ -491,6 +491,8 @@ final class GooglePhotosAccountAvatar {
     }
 
     private static final String[] AVAILABLE_ACCOUNT_AVATAR_IDS = new String[] {
+            "account_header_avatar",
+            "onboarding_account_header",
             "sud_account_avatar",
             "photos_settings_account_avatar",
             "photos_settings_account_adapter_avatar",
@@ -583,12 +585,14 @@ final class GooglePhotosAccountAvatar {
             }
 
             ViewParent parent = tv.getParent();
-            if (parent instanceof ViewGroup) {
+            for (int depth = 0; depth < 4 && parent instanceof ViewGroup; depth++) {
                 ViewGroup row = (ViewGroup) parent;
                 ImageView avatarIv = findSiblingImageView(row, tv);
                 if (avatarIv != null) {
                     applyBentoAvatar(avatarIv, bmp);
+                    break;
                 }
+                parent = parent.getParent();
             }
         }
     }
