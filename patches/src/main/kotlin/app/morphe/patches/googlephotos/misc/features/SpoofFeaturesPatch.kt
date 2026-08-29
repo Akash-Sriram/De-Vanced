@@ -24,7 +24,7 @@ val spoofFeaturesPatch = bytecodePatch(
     name = "Spoof features",
     description = "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
 ) {
-    compatibleWith(AppCompatibilities.GOOGLE_PHOTOS, AppCompatibilities.MORPHE_PHOTOS)
+    compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)
 
     dependsOn(
         spoofBuildInfoPatch,

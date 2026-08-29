@@ -8,7 +8,7 @@ val phenotypeAssetsPatch = resourcePatch(
     name = "Phenotype assets",
     description = "Bundles official Google Photos Phenotype flags into the APK assets.",
 ) {
-    compatibleWith(AppCompatibilities.GOOGLE_PHOTOS, AppCompatibilities.MORPHE_PHOTOS)
+    compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)
 
     execute {
         val destFile = this["assets/phenotype/com.google.android.apps.photos.phenotype.xml"]
