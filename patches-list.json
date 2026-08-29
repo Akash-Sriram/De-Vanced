@@ -1,8 +1,7 @@
 {
-  "version": "1.6.7",
+  "version": "1.6.8",
   "appNames": {
-    "com.google.android.apps.photos": "Google Photos",
-    "app.morphe.android.apps.photos": "Google Photos (Morphe)"
+    "com.google.android.apps.photos": "Google Photos"
   },
   "patches": [
     {
@@ -88,25 +87,12 @@
       "use": true,
       "dependencies": [],
       "compatiblePackages": {
-        "com.google.android.apps.photos": null,
-        "app.morphe.android.apps.photos": null
+        "com.google.android.apps.photos": null
       },
       "compatibility": [
         {
           "name": "Google Photos",
           "packageName": "com.google.android.apps.photos",
-          "description": null,
-          "appIconColor": 16531260,
-          "targets": [
-            {
-              "version": "",
-              "experimental": false
-            }
-          ]
-        },
-        {
-          "name": "Google Photos (Morphe)",
-          "packageName": "app.morphe.android.apps.photos",
           "description": null,
           "appIconColor": 16531260,
           "targets": [
@@ -129,25 +115,12 @@
         "BytecodePatch"
       ],
       "compatiblePackages": {
-        "com.google.android.apps.photos": null,
-        "app.morphe.android.apps.photos": null
+        "com.google.android.apps.photos": null
       },
       "compatibility": [
         {
           "name": "Google Photos",
           "packageName": "com.google.android.apps.photos",
-          "description": null,
-          "appIconColor": 16531260,
-          "targets": [
-            {
-              "version": "",
-              "experimental": false
-            }
-          ]
-        },
-        {
-          "name": "Google Photos (Morphe)",
-          "packageName": "app.morphe.android.apps.photos",
           "description": null,
           "appIconColor": 16531260,
           "targets": [

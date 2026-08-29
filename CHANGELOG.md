@@ -1,3 +1,10 @@
+## [1.6.8](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.7...v1.6.8) (2026-08-29)
+
+
+### Bug Fixes
+
+* **photos:** remove duplicate Morphe Photos compatibility target ([7099408](https://github.com/Akash-Sriram/De-Vanced/commit/70994082e501851e7a362dfefc644b8a1d593a6d))
+
 ## [1.6.7](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.6...v1.6.7) (2026-08-29)
 
 
