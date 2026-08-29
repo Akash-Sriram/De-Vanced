@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-08-29T22:14:55",
-  "description": "# [1.8.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.7.0...v1.8.0) (2026-08-29)\n\n\n### Features\n\n* **photos:** pre-fetch avatars on launch and bind account row avatars dynamically ([c921078](https://github.com/Akash-Sriram/De-Vanced/commit/c9210781302fa96c4a3205173d47698c83f26652))",
-  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.8.0/patches-1.8.0.mpp",
+  "created_at": "2026-08-29T22:32:01",
+  "description": "## [1.8.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.8.0...v1.8.1) (2026-08-29)\n\n\n### Bug Fixes\n\n* **photos:** support onboarding bottom sheet account avatar and multi-depth row binding ([6f8cdaa](https://github.com/Akash-Sriram/De-Vanced/commit/6f8cdaa12bf9c02470e64e5ccadbc74d40e3d782))",
+  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.8.1/patches-1.8.1.mpp",
   "signature_download_url": "",
-  "version": "1.8.0"
+  "version": "1.8.1"
 }

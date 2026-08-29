@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.8.0...v1.8.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* **photos:** support onboarding bottom sheet account avatar and multi-depth row binding ([6f8cdaa](https://github.com/Akash-Sriram/De-Vanced/commit/6f8cdaa12bf9c02470e64e5ccadbc74d40e3d782))
+
 # [1.8.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.7.0...v1.8.0) (2026-08-29)
 
 
