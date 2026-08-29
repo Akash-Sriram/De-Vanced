@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.8...v1.7.0) (2026-08-29)
+
+
+### Features
+
+* **photos:** enable all Google Photos patches by default and prune obsolete legacy patches ([e6f9655](https://github.com/Akash-Sriram/De-Vanced/commit/e6f965520fa9fa0f1984ffe5d2789bb72fc4119b))
+
 ## [1.6.8](https://github.com/Akash-Sriram/De-Vanced/compare/v1.6.7...v1.6.8) (2026-08-29)
 
 
