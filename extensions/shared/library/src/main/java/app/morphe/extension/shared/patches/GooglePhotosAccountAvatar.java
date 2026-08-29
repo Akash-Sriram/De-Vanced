@@ -20,10 +20,12 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
@@ -67,9 +69,9 @@ final class GooglePhotosAccountAvatar {
     private static final String ACCOUNT_TYPE = "app.revanced";
     private static final String RESOURCE_PACKAGE_NAME = "com.google.android.apps.photos";
     private static final String PROFILE_TOKEN_TYPE =
-            "oauth2:https://www.googleapis.com/auth/userinfo.profile";
+            "oauth2:openid";
     private static final String USER_INFO_URL =
-            "https://www.googleapis.com/oauth2/v1/userinfo";
+            "https://www.googleapis.com/oauth2/v3/userinfo";
 
     private static final String PREFS_NAME = "morphe_google_photos_avatar";
     private static final String PREF_SELECTED_ACCOUNT = "selected_account";
@@ -260,29 +262,7 @@ final class GooglePhotosAccountAvatar {
         return matcher.find() ? matcher.group() : null;
     }
 
-    private static void activateAccount(Activity activity, String accountName) {
-        if (!sameAccount(accountName, selectedAccountName)) {
-            selectedAccountName = accountName;
-            activity.getSharedPreferences(PREFS_NAME, 0)
-                    .edit()
-                    .putString(PREF_SELECTED_ACCOUNT, accountName)
-                    .apply();
 
-            Bitmap cachedAvatar = readCachedAvatar(activity, accountName);
-            avatar = cachedAvatar;
-            avatarAccountName = cachedAvatar == null ? null : accountName;
-            Logger.printInfo(() -> "Google Photos avatar account changed");
-            return;
-        }
-
-        if (avatar == null && !sameAccount(accountName, avatarAccountName)) {
-            Bitmap cachedAvatar = readCachedAvatar(activity, accountName);
-            if (cachedAvatar != null) {
-                avatar = cachedAvatar;
-                avatarAccountName = accountName;
-            }
-        }
-    }
 
     private static void requestProfileToken(Activity activity, View root, Account account) {
         final String accountName = account.name;
@@ -306,54 +286,28 @@ final class GooglePhotosAccountAvatar {
             Utils.runOnBackgroundThread(() -> {
                 boolean refreshDifferentAccount = false;
                 try {
-                    Bitmap downloadedAvatar = null;
-
-                    AccountManager accountManager = AccountManager.get(activity);
-                    String directAvatarUrl = accountManager.getUserData(account, "avatar");
-                    if (directAvatarUrl == null || directAvatarUrl.isEmpty()) {
-                        directAvatarUrl = accountManager.getUserData(account, "picture_url");
-                    }
-                    if (directAvatarUrl != null && !directAvatarUrl.isEmpty()) {
-                        try {
-                            HttpURLConnection directConn = openConnection(directAvatarUrl);
-                            try {
-                                if (directConn.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                                    try (InputStream stream = new BufferedInputStream(directConn.getInputStream())) {
-                                        downloadedAvatar = getCircularBitmap(BitmapFactory.decodeStream(stream));
-                                    }
-                                }
-                            } finally {
-                                directConn.disconnect();
-                            }
-                        } catch (Exception ignored) {
-                        }
+                    Bundle result = future.getResult();
+                    String token = result.getString(AccountManager.KEY_AUTHTOKEN);
+                    if (token == null || token.isEmpty()) {
+                        throw new IllegalStateException("Google auth token was empty");
                     }
 
-                    if (downloadedAvatar == null) {
-                        Bundle result = future.getResult();
-                        String token = result.getString(AccountManager.KEY_AUTHTOKEN);
-                        if (token != null && !token.isEmpty()) {
-                            downloadedAvatar = downloadAvatar(token);
-                        }
-                    }
-
+                    Bitmap downloadedAvatar = downloadAvatar(token);
                     if (downloadedAvatar == null) {
                         throw new IllegalStateException("Google user-info returned no avatar");
                     }
 
                     writeCachedAvatar(activity, accountName, downloadedAvatar);
 
-                    if (sameAccount(accountName, selectedAccountName)) {
-                        avatar = downloadedAvatar;
-                        avatarAccountName = accountName;
-                        Logger.printInfo(() -> "Google Photos account avatar loaded");
-                        Utils.runOnMainThread(() -> applyAvatar(activity, root));
-                    } else {
-                        refreshDifferentAccount = selectedAccountName != null;
-                    }
+                    avatar = downloadedAvatar;
+                    avatarAccountName = accountName;
+                    selectedAccountName = accountName;
+                    Logger.printInfo(() -> "Google Photos account avatar loaded successfully!");
+                    Utils.runOnMainThread(() -> applyAvatar(activity, root));
                 } catch (Exception exception) {
-                    Logger.printDebug(
-                            () -> "Could not load the Google Photos account avatar: " + exception.getMessage()
+                    Logger.printException(
+                            () -> "Could not load the Google Photos account avatar",
+                            exception
                     );
                     refreshDifferentAccount = selectedAccountName != null
                             && !sameAccount(accountName, selectedAccountName);
@@ -366,8 +320,9 @@ final class GooglePhotosAccountAvatar {
             });
         } catch (Exception exception) {
             FETCHING_ACCOUNT.compareAndSet(accountName, null);
-            Logger.printDebug(
-                    () -> "Could not request the Google Photos profile token: " + exception.getMessage()
+            Logger.printException(
+                    () -> "Could not request the Google Photos profile token",
+                    exception
             );
         }
     }
@@ -417,7 +372,25 @@ final class GooglePhotosAccountAvatar {
         connection.setReadTimeout(15_000);
         connection.setInstanceFollowRedirects(true);
         connection.setRequestProperty("Accept", "application/json,image/*");
+        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14)");
         return connection;
+    }
+
+    private static void activateAccount(Activity activity, String accountName) {
+        selectedAccountName = accountName;
+        activity.getSharedPreferences(PREFS_NAME, 0)
+                .edit()
+                .putString(PREF_SELECTED_ACCOUNT, accountName)
+                .apply();
+
+        if (avatar == null || !sameAccount(accountName, avatarAccountName)) {
+            Bitmap cachedAvatar = readCachedAvatar(activity, accountName);
+            if (cachedAvatar != null) {
+                avatar = cachedAvatar;
+                avatarAccountName = accountName;
+                Logger.printInfo(() -> "Google Photos avatar loaded from disk cache");
+            }
+        }
     }
 
     private static void applyAvatar(Activity activity, View root) {
@@ -425,7 +398,6 @@ final class GooglePhotosAccountAvatar {
         String currentAccount = avatarAccountName;
         if (currentAvatar == null
                 || currentAccount == null
-                || !sameAccount(currentAccount, selectedAccountName)
                 || activity.isFinishing()
                 || activity.isDestroyed()) {
             return;
@@ -439,24 +411,92 @@ final class GooglePhotosAccountAvatar {
             }
         }
 
+        int selectedDiscId = getResourceId(activity, "selected_account_disc");
+        if (selectedDiscId != 0) {
+            View selectedDisc = root.findViewById(selectedDiscId);
+            if (selectedDisc != null) {
+                applyDiscAvatar(selectedDisc, currentAvatar);
+            }
+        }
+
+        int toolbarApdId = getResourceId(activity, "og_selected_account_disc_apd");
+        if (toolbarApdId != 0) {
+            View apd = root.findViewById(toolbarApdId);
+            if (apd != null) {
+                applyDiscAvatar(apd, currentAvatar);
+            }
+        }
+
         int accountSheetAvatarId = getResourceId(activity, "og_bento_selected_account_avatar");
         if (accountSheetAvatarId != 0) {
             View accountSheetAvatar = root.findViewById(accountSheetAvatarId);
-            applyAccountSheetAvatar(accountSheetAvatar, currentAvatar, currentAccount);
-            if (accountSheetAvatar != null
-                    && shouldScheduleAccountSheet(accountSheetAvatar, currentAccount)) {
-                accountSheetAvatar.postDelayed(
-                        () -> applyAccountSheetAvatar(
-                                accountSheetAvatar, currentAvatar, currentAccount),
-                        100);
-                accountSheetAvatar.postDelayed(
-                        () -> applyAccountSheetAvatar(
-                                accountSheetAvatar, currentAvatar, currentAccount),
-                        400);
-                accountSheetAvatar.postDelayed(
-                        () -> applyAccountSheetAvatar(
-                                accountSheetAvatar, currentAvatar, currentAccount),
-                        1_200);
+            if (accountSheetAvatar != null) {
+                applyDiscAvatar(accountSheetAvatar, currentAvatar);
+            }
+        }
+
+        // Also recursively scan for the Bento Account Sheet avatar ImageView
+        findAndApplyAvatars(root, currentAvatar, currentAccount);
+    }
+
+    private static void applyDiscAvatar(View discView, Bitmap bitmap) {
+        if (!(discView instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) discView;
+
+        ImageView overlay = null;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (ACCOUNT_AVATAR_OVERLAY_TAG.equals(child.getTag()) && child instanceof ImageView) {
+                overlay = (ImageView) child;
+                break;
+            }
+        }
+
+        if (overlay == null) {
+            overlay = new ImageView(group.getContext());
+            overlay.setTag(ACCOUNT_AVATAR_OVERLAY_TAG);
+            overlay.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    Gravity.CENTER
+            );
+            group.addView(overlay, lp);
+        }
+
+        overlay.setImageBitmap(bitmap);
+        overlay.bringToFront();
+        overlay.setVisibility(View.VISIBLE);
+    }
+
+    private static void findAndApplyAvatars(View view, Bitmap bitmap, String accountName) {
+        if (view instanceof ImageView) {
+            ImageView iv = (ImageView) view;
+            if (ACCOUNT_AVATAR_OVERLAY_TAG.equals(iv.getTag())) return;
+            int width = iv.getWidth();
+            int height = iv.getHeight();
+            if (width > 30 && height > 30 && Math.abs(width - height) <= 30) {
+                CharSequence desc = iv.getContentDescription();
+                if (desc != null && desc.toString().toLowerCase().contains("account")) {
+                    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    iv.setImageBitmap(bitmap);
+                    ViewParent parent = iv.getParent();
+                    if (parent instanceof ViewGroup) {
+                        applyDiscAvatar((ViewGroup) parent, bitmap);
+                    }
+                } else if (iv.getId() == View.NO_ID && width > 100 && height > 100) {
+                    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    iv.setImageBitmap(bitmap);
+                    ViewParent parent = iv.getParent();
+                    if (parent instanceof ViewGroup) {
+                        applyDiscAvatar((ViewGroup) parent, bitmap);
+                    }
+                }
+            }
+        } else if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                findAndApplyAvatars(vg.getChildAt(i), bitmap, accountName);
             }
         }
     }
