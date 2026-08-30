@@ -29,7 +29,6 @@ val spoofFeaturesPatch = bytecodePatch(
 
     dependsOn(
         spoofBuildInfoPatch,
-        phenotypeAssetsPatch,
         app.morphe.patches.googlephotos.misc.extension.sharedExtensionPatch,
     )
 

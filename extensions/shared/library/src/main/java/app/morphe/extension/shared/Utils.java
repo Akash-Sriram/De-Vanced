@@ -422,95 +422,35 @@ public class Utils {
         setThemeLightColor(getThemeColor(getThemeLightColorResourceName(), Color.WHITE));
         setThemeDarkColor(getThemeColor(getThemeDarkColorResourceName(), Color.BLACK));
 
-        // Trigger in-app update check for Google Photos Patched releases
-        app.morphe.extension.shared.updater.GitHubReleaseChecker.checkUpdateOnStartup(appContext);
-
         // Seed embedded Phenotype flags for Google Photos on first launch
         seedPhenotypeFlags(appContext);
     }
 
     public static void seedPhenotypeEarly(Context context) {
-        try {
-            File prefsDir = new File(context.getApplicationInfo().dataDir, "shared_prefs");
-            if (!prefsDir.exists()) {
-                prefsDir.mkdirs();
-            }
-            File xmlFile = new File(prefsDir, "com.google.android.apps.photos.phenotype.xml");
-            if (!xmlFile.exists() || xmlFile.length() < 100_000) {
-                try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml");
-                     java.io.FileOutputStream out = new java.io.FileOutputStream(xmlFile)) {
-                    byte[] buffer = new byte[8192];
-                    int read;
-                    while ((read = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, read);
-                    }
-                    out.flush();
-                }
-                xmlFile.setReadable(true, false);
-                xmlFile.setWritable(true, false);
-            }
-        } catch (Throwable ignored) {}
     }
 
     public static void seedPhenotypeFlags(Context context) {
         try {
-            android.util.Log.e("MorphePhenotype", "seedPhenotypeFlags called with context: " + context);
-            try {
-                File prefsDir = new File(context.getFilesDir().getParentFile(), "shared_prefs");
-                prefsDir.mkdirs();
-                File xmlFile = new File(prefsDir, "com.google.android.apps.photos.phenotype.xml");
-                try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml");
-                     java.io.FileOutputStream out = new java.io.FileOutputStream(xmlFile)) {
-                    byte[] buffer = new byte[8192];
-                    int read;
-                    while ((read = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, read);
-                    }
-                    out.flush();
-                }
-                xmlFile.setReadable(true, false);
-                xmlFile.setWritable(true, false);
-                android.util.Log.e("MorphePhenotype", "Wrote XML to disk: " + xmlFile.getAbsolutePath() + " (" + xmlFile.length() + " bytes)");
-            } catch (Throwable e) {
-                android.util.Log.e("MorphePhenotype", "Failed to write XML to disk", e);
-            }
-
             android.content.SharedPreferences prefs = context.getSharedPreferences("com.google.android.apps.photos.phenotype", Context.MODE_PRIVATE);
-            try (java.io.InputStream in = context.getAssets().open("phenotype/com.google.android.apps.photos.phenotype.xml")) {
-                org.xmlpull.v1.XmlPullParser parser = android.util.Xml.newPullParser();
-                parser.setInput(in, "UTF-8");
-                android.content.SharedPreferences.Editor editor = prefs.edit();
-                int eventType = parser.getEventType();
-                int count = 0;
-                while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                    if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG) {
-                        String tag = parser.getName();
-                        String name = parser.getAttributeValue(null, "name");
-                        String value = parser.getAttributeValue(null, "value");
-                        if (name != null) {
-                            if ("boolean".equals(tag) && value != null) {
-                                editor.putBoolean(name, Boolean.parseBoolean(value));
-                                count++;
-                            } else if ("long".equals(tag) && value != null) {
-                                try { editor.putLong(name, Long.parseLong(value)); count++; } catch (Exception ignored) {}
-                            } else if ("float".equals(tag) && value != null) {
-                                try { editor.putFloat(name, Float.parseFloat(value)); count++; } catch (Exception ignored) {}
-                            } else if ("string".equals(tag)) {
-                                editor.putString(name, parser.nextText());
-                                count++;
-                            }
-                        }
-                    }
-                    eventType = parser.next();
-                }
-                boolean committed = editor.commit();
-                android.util.Log.e("MorphePhenotype", "Committed " + count + " flags to prefs, success=" + committed + ", total size=" + prefs.getAll().size());
-            } catch (Throwable e) {
-                android.util.Log.e("MorphePhenotype", "Failed to seed prefs from asset", e);
+            if (prefs.getAll().isEmpty()) {
+                prefs.edit()
+                        .putBoolean("45743215", true)
+                        .putLong("45802110", 2L)
+                        .putLong("45762698", 2L)
+                        .putBoolean("45732792", true)
+                        .putBoolean("3024", true)
+                        .putBoolean("4311", true)
+                        .putLong("3013", 1L)
+                        .putBoolean("3026", true)
+                        .putBoolean("3023", true)
+                        .putBoolean("2892", true)
+                        .putBoolean("4306", true)
+                        .putBoolean("3611", true)
+                        .putBoolean("2675", true)
+                        .putBoolean("3606", true)
+                        .apply();
             }
-        } catch (Throwable t) {
-            android.util.Log.e("MorphePhenotype", "Fatal error in seedPhenotypeFlags", t);
-        }
+        } catch (Throwable ignored) {}
     }
 
     public static void setClipboard(CharSequence text) {

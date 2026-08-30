@@ -30,6 +30,10 @@ public class GitHubReleaseChecker {
     private static boolean hasCheckedThisSession = false;
 
     public static void checkUpdateOnStartup(final Context context) {
+        checkUpdateOnStartup(context, REPO_RELEASES_URL);
+    }
+
+    public static void checkUpdateOnStartup(final Context context, final String customUrl) {
         if (hasCheckedThisSession || context == null) {
             return;
         }
@@ -37,11 +41,13 @@ public class GitHubReleaseChecker {
 
         cleanupOldDownloads(context);
 
+        final String targetUrl = (customUrl != null && !customUrl.isEmpty()) ? customUrl : REPO_RELEASES_URL;
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    URL url = new URL(REPO_RELEASES_URL);
+                    URL url = new URL(targetUrl);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("GET");
                     conn.setRequestProperty("User-Agent", "GooglePhotos-Patched-App");

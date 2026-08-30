@@ -106,8 +106,29 @@ final class GooglePhotosAccountAvatar {
     private GooglePhotosAccountAvatar() {
     }
 
+    private static boolean lifecycleRegistered = false;
+
     static void install(Activity activity) {
         Logger.printInfo(() -> "Installing the Google Photos account avatar bridge");
+        if (!lifecycleRegistered && activity.getApplication() != null) {
+            activity.getApplication().registerActivityLifecycleCallbacks(new android.app.Application.ActivityLifecycleCallbacks() {
+                @Override public void onActivityCreated(Activity a, android.os.Bundle b) {
+                    observeWindowRoot(a, a.getWindow().getDecorView());
+                }
+                @Override public void onActivityStarted(Activity a) {
+                    observeWindowRoot(a, a.getWindow().getDecorView());
+                }
+                @Override public void onActivityResumed(Activity a) {
+                    observeWindowRoot(a, a.getWindow().getDecorView());
+                    refresh(a, a.getWindow().getDecorView());
+                }
+                @Override public void onActivityPaused(Activity a) {}
+                @Override public void onActivityStopped(Activity a) {}
+                @Override public void onActivitySaveInstanceState(Activity a, android.os.Bundle b) {}
+                @Override public void onActivityDestroyed(Activity a) {}
+            });
+            lifecycleRegistered = true;
+        }
         View root = activity.getWindow().getDecorView();
         observeWindowRoot(activity, root);
         scanWindowRoots(activity, true);
