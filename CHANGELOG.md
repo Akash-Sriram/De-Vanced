@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.10.0...v1.11.0) (2026-08-30)
+
+
+### Features
+
+* **photos:** enable all PIXEL_PRELOAD and PIXEL_EXPERIENCE features ([d2ecdf4](https://github.com/Akash-Sriram/De-Vanced/commit/d2ecdf41a7eaa015881022b1a17506ac8e4be55b))
+
 # [1.10.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.9.1...v1.10.0) (2026-08-30)
 
 
