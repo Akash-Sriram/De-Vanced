@@ -103,14 +103,12 @@ val spoofFeaturesPatch = bytecodePatch(
                         index,
                         BuilderInstruction21c(
                             Opcode.CONST_STRING,
-                            instruction.registerA,
+                            (instruction as OneRegisterInstruction).registerA,
                             ImmutableStringReference(transformedString),
                         ),
                     )
                 }
             }
         }
-
     }
 }
-

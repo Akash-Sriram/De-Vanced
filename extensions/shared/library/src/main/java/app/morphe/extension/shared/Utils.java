@@ -433,23 +433,21 @@ public class Utils {
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("com.google.android.apps.photos.phenotype", Context.MODE_PRIVATE);
             if (!prefs.contains("_morphe_flags_seeded")) {
-                prefs.edit()
-                        .putBoolean("_morphe_flags_seeded", true)
-                        .putBoolean("45743215", true)
-                        .putLong("45802110", 2L)
-                        .putLong("45762698", 2L)
-                        .putBoolean("45732792", true)
-                        .putBoolean("3024", true)
-                        .putBoolean("4311", true)
-                        .putLong("3013", 1L)
-                        .putBoolean("3026", true)
-                        .putBoolean("3023", true)
-                        .putBoolean("2892", true)
-                        .putBoolean("4306", true)
-                        .putBoolean("3611", true)
-                        .putBoolean("2675", true)
-                        .putBoolean("3606", true)
-                        .apply();
+                android.content.SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean("_morphe_flags_seeded", true);
+
+                // Modern UI presets
+                editor.putBoolean("45743215", true); // Floating Date Capsule Pill [ Today ]
+                editor.putLong("45802110", 2L);      // Collections Shelves V2
+                editor.putLong("45762698", 2L);      // Collections Shelves V2
+                editor.putBoolean("3024", true);      // Floating Bottom Navigation Bar
+                editor.putBoolean("4311", true);      // Floating Bottom Navigation Bar
+                editor.putLong("3013", 1L);          // Gemini AI / Ask Photos Tab
+                editor.putBoolean("3026", true);      // Memories Stories
+                editor.putBoolean("3023", true);      // Memories Stories
+                editor.putBoolean("2892", true);      // Memories Stories
+
+                editor.apply();
             }
         } catch (Throwable ignored) {}
     }

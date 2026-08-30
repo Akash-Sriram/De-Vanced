@@ -362,17 +362,12 @@ public class PhenotypeFlagManager {
                     .putBoolean("45743215", true)
                     .putLong("45802110", 2L)
                     .putLong("45762698", 2L)
-                    .putBoolean("45732792", true)
                     .putBoolean("3024", true)
                     .putBoolean("4311", true)
                     .putLong("3013", 1L)
                     .putBoolean("3026", true)
                     .putBoolean("3023", true)
                     .putBoolean("2892", true)
-                    .putBoolean("4306", true)
-                    .putBoolean("3611", true)
-                    .putBoolean("2675", true)
-                    .putBoolean("3606", true)
                     .apply();
             Toast.makeText(activity, "Default preset restored!", Toast.LENGTH_SHORT).show();
             refreshFlagsList.run();
