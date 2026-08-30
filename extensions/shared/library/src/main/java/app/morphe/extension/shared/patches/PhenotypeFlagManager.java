@@ -7,6 +7,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
@@ -41,13 +42,17 @@ public class PhenotypeFlagManager {
 
     private static final String PREF_NAME = "com.google.android.apps.photos.phenotype";
     private static final String MORPHE_SETTINGS_PILL_TAG = "morphe_phenotype_settings_pill";
+    private static final String SEEDED_MARKER = "_morphe_flags_seeded";
 
     private static final int COLOR_PRIMARY = 0xFF1A73E8;
-    private static final int COLOR_ACCENT = 0xFF00796B;
+    private static final int COLOR_ACCENT = 0xFF0B8043;
     private static final int COLOR_DANGER = 0xFFD93025;
     private static final int COLOR_TEXT_PRIMARY = 0xFF202124;
     private static final int COLOR_TEXT_SECONDARY = 0xFF5F6368;
     private static final int COLOR_BG_LIGHT = 0xFFF1F3F4;
+    private static final int COLOR_BG_BLUE_TINT = 0xFFE8F0FE;
+    private static final int COLOR_BG_GREEN_TINT = 0xFFE6F4EA;
+    private static final int COLOR_BG_RED_TINT = 0xFFFCE8E6;
 
     public static SharedPreferences getPrefs(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -141,11 +146,30 @@ public class PhenotypeFlagManager {
         });
     }
 
+    private static Button createStyledButton(Activity activity, String text, int textColor, int bgColor) {
+        float density = activity.getResources().getDisplayMetrics().density;
+        Button btn = new Button(activity);
+        btn.setText(text);
+        btn.setTextSize(11);
+        btn.setTextColor(textColor);
+        btn.setTypeface(null, Typeface.BOLD);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(16 * density);
+        bg.setColor(bgColor);
+        btn.setBackground(bg);
+
+        int padH = (int) (8 * density);
+        int padV = (int) (6 * density);
+        btn.setPadding(padH, padV, padH, padV);
+        return btn;
+    }
+
     private static void showDialog(Activity activity) {
         SharedPreferences prefs = getPrefs(activity);
         float density = activity.getResources().getDisplayMetrics().density;
 
-        // Root container (Fixed Header + Scrollable Flags List)
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         int padH = (int) (20 * density);
@@ -169,58 +193,43 @@ public class PhenotypeFlagManager {
 
         Button btnRestoreDefaults = new Button(activity);
         btnRestoreDefaults.setText("⚡ Reset Defaults");
-        btnRestoreDefaults.setTextSize(11);
+        btnRestoreDefaults.setTextSize(12);
         btnRestoreDefaults.setTextColor(COLOR_PRIMARY);
+        btnRestoreDefaults.setTypeface(null, Typeface.BOLD);
         btnRestoreDefaults.setBackgroundColor(0x00000000);
         headerRow.addView(btnRestoreDefaults);
         root.addView(headerRow);
 
-        // Top Pinned Action Toolbar (Add Flag / Import / Export / Clear)
+        // Pinned Action Toolbar (4 Distinct Colored Pills)
         LinearLayout toolBar = new LinearLayout(activity);
         toolBar.setOrientation(LinearLayout.HORIZONTAL);
         toolBar.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams tbLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        tbLp.setMargins(0, 0, 0, (int) (6 * density));
+        tbLp.setMargins(0, 0, 0, (int) (8 * density));
         toolBar.setLayoutParams(tbLp);
 
-        Button btnAdd = new Button(activity);
-        btnAdd.setText("➕ Add");
-        btnAdd.setTextSize(11);
-        btnAdd.setTextColor(COLOR_PRIMARY);
-        btnAdd.setBackgroundColor(COLOR_BG_LIGHT);
-        LinearLayout.LayoutParams bLp1 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        bLp1.setMargins(0, 0, (int) (2 * density), 0);
+        Button btnAdd = createStyledButton(activity, "➕ Add", COLOR_PRIMARY, COLOR_BG_BLUE_TINT);
+        LinearLayout.LayoutParams bLp1 = new LinearLayout.LayoutParams(0, (int) (38 * density), 1f);
+        bLp1.setMargins(0, 0, (int) (3 * density), 0);
         btnAdd.setLayoutParams(bLp1);
         toolBar.addView(btnAdd);
 
-        Button btnImport = new Button(activity);
-        btnImport.setText("📥 Import");
-        btnImport.setTextSize(11);
-        btnImport.setTextColor(COLOR_PRIMARY);
-        btnImport.setBackgroundColor(COLOR_BG_LIGHT);
-        LinearLayout.LayoutParams bLp2 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        bLp2.setMargins((int) (2 * density), 0, (int) (2 * density), 0);
+        Button btnImport = createStyledButton(activity, "📥 Import", COLOR_PRIMARY, COLOR_BG_BLUE_TINT);
+        LinearLayout.LayoutParams bLp2 = new LinearLayout.LayoutParams(0, (int) (38 * density), 1f);
+        bLp2.setMargins((int) (3 * density), 0, (int) (3 * density), 0);
         btnImport.setLayoutParams(bLp2);
         toolBar.addView(btnImport);
 
-        Button btnExport = new Button(activity);
-        btnExport.setText("📤 Export");
-        btnExport.setTextSize(11);
-        btnExport.setTextColor(COLOR_ACCENT);
-        btnExport.setBackgroundColor(COLOR_BG_LIGHT);
-        LinearLayout.LayoutParams bLp3 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        bLp3.setMargins((int) (2 * density), 0, (int) (2 * density), 0);
+        Button btnExport = createStyledButton(activity, "📤 Export", COLOR_ACCENT, COLOR_BG_GREEN_TINT);
+        LinearLayout.LayoutParams bLp3 = new LinearLayout.LayoutParams(0, (int) (38 * density), 1f);
+        bLp3.setMargins((int) (3 * density), 0, (int) (3 * density), 0);
         btnExport.setLayoutParams(bLp3);
         toolBar.addView(btnExport);
 
-        Button btnClear = new Button(activity);
-        btnClear.setText("🗑️ Clear");
-        btnClear.setTextSize(11);
-        btnClear.setTextColor(COLOR_DANGER);
-        btnClear.setBackgroundColor(COLOR_BG_LIGHT);
-        LinearLayout.LayoutParams bLp4 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        bLp4.setMargins((int) (2 * density), 0, 0, 0);
+        Button btnClear = createStyledButton(activity, "🗑️ Clear", COLOR_DANGER, COLOR_BG_RED_TINT);
+        LinearLayout.LayoutParams bLp4 = new LinearLayout.LayoutParams(0, (int) (38 * density), 1f);
+        bLp4.setMargins((int) (3 * density), 0, 0, 0);
         btnClear.setLayoutParams(bLp4);
         toolBar.addView(btnClear);
 
@@ -234,7 +243,7 @@ public class PhenotypeFlagManager {
         searchBar.setHintTextColor(COLOR_TEXT_SECONDARY);
         LinearLayout.LayoutParams searchLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        searchLp.setMargins(0, (int) (6 * density), 0, (int) (6 * density));
+        searchLp.setMargins(0, (int) (4 * density), 0, (int) (6 * density));
         searchBar.setLayoutParams(searchLp);
         root.addView(searchBar);
 
@@ -253,16 +262,21 @@ public class PhenotypeFlagManager {
         Runnable refreshFlagsList = () -> {
             flagsListContainer.removeAllViews();
             Map<String, ?> all = prefs.getAll();
-            List<String> keys = new ArrayList<>(all.keySet());
+            List<String> keys = new ArrayList<>();
+            for (String k : all.keySet()) {
+                if (!k.startsWith("_")) {
+                    keys.add(k);
+                }
+            }
             Collections.sort(keys);
             String query = searchBar.getText().toString().toLowerCase().trim();
 
             if (keys.isEmpty()) {
                 TextView tvEmpty = new TextView(activity);
                 tvEmpty.setText("No flags configured.\nTap '➕ Add' or '⚡ Reset Defaults'.");
-                tvEmpty.setTextSize(13);
+                tvEmpty.setTextSize(14);
                 tvEmpty.setTextColor(COLOR_TEXT_SECONDARY);
-                tvEmpty.setPadding((int) (8 * density), (int) (24 * density), (int) (8 * density), (int) (24 * density));
+                tvEmpty.setPadding((int) (8 * density), (int) (36 * density), (int) (8 * density), (int) (36 * density));
                 tvEmpty.setGravity(Gravity.CENTER);
                 flagsListContainer.addView(tvEmpty);
                 return;
@@ -315,20 +329,36 @@ public class PhenotypeFlagManager {
         btnExport.setOnClickListener(v -> showExportDialog(activity, prefs));
 
         btnClear.setOnClickListener(v -> {
-            new AlertDialog.Builder(activity, AlertDialog.THEME_DEVICE_DEFAULT_LIGHT)
+            AlertDialog clearDialog = new AlertDialog.Builder(activity, AlertDialog.THEME_DEVICE_DEFAULT_LIGHT)
                     .setTitle("🗑️ Clear All Flags")
                     .setMessage("Are you sure you want to remove all configured phenotype flags?")
                     .setPositiveButton("Clear All", (d, w) -> {
-                        prefs.edit().clear().apply();
+                        prefs.edit().clear().putBoolean(SEEDED_MARKER, true).apply();
                         Toast.makeText(activity, "All flags cleared", Toast.LENGTH_SHORT).show();
                         refreshFlagsList.run();
                     })
                     .setNegativeButton("Cancel", null)
-                    .show();
+                    .create();
+
+            clearDialog.setOnShowListener(d -> {
+                Button pos = clearDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                if (pos != null) {
+                    pos.setTextColor(COLOR_DANGER);
+                    pos.setTypeface(null, Typeface.BOLD);
+                }
+                Button neg = clearDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                if (neg != null) {
+                    neg.setTextColor(COLOR_TEXT_SECONDARY);
+                    neg.setTypeface(null, Typeface.BOLD);
+                }
+            });
+
+            clearDialog.show();
         });
 
         btnRestoreDefaults.setOnClickListener(v -> {
             prefs.edit().clear()
+                    .putBoolean(SEEDED_MARKER, true)
                     .putBoolean("45743215", true)
                     .putLong("45802110", 2L)
                     .putLong("45762698", 2L)
@@ -454,6 +484,7 @@ public class PhenotypeFlagManager {
 
     private static int parseAndApplyFlags(SharedPreferences prefs, String input) {
         SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(SEEDED_MARKER, true);
         int count = 0;
 
         if (input.startsWith("{") && input.endsWith("}")) {
@@ -462,6 +493,7 @@ public class PhenotypeFlagManager {
                 Iterator<String> keys = json.keys();
                 while (keys.hasNext()) {
                     String k = keys.next().trim();
+                    if (k.startsWith("_")) continue;
                     Object v = json.get(k);
                     if (v instanceof Boolean) {
                         editor.putBoolean(k, (Boolean) v);
@@ -487,6 +519,7 @@ public class PhenotypeFlagManager {
             String tag = xmlMatcher.group(1);
             String k = xmlMatcher.group(2);
             String v = xmlMatcher.group(3);
+            if (k.startsWith("_")) continue;
             if ("boolean".equals(tag)) {
                 editor.putBoolean(k, Boolean.parseBoolean(v));
             } else if ("long".equals(tag) || "int".equals(tag)) {
@@ -515,7 +548,7 @@ public class PhenotypeFlagManager {
             String k = line.substring(0, eq).trim().replace("\"", "").replace("'", "");
             String v = line.substring(eq + 1).trim().replace("\"", "").replace("'", "").replace(",", "");
 
-            if (k.isEmpty() || v.isEmpty()) continue;
+            if (k.isEmpty() || v.isEmpty() || k.startsWith("_")) continue;
 
             if ("true".equalsIgnoreCase(v) || "false".equalsIgnoreCase(v)) {
                 editor.putBoolean(k, Boolean.parseBoolean(v));
@@ -542,7 +575,12 @@ public class PhenotypeFlagManager {
     private static void showExportDialog(Activity activity, SharedPreferences prefs) {
         float density = activity.getResources().getDisplayMetrics().density;
         Map<String, ?> all = prefs.getAll();
-        List<String> keys = new ArrayList<>(all.keySet());
+        List<String> keys = new ArrayList<>();
+        for (String k : all.keySet()) {
+            if (!k.startsWith("_")) {
+                keys.add(k);
+            }
+        }
         Collections.sort(keys);
 
         StringBuilder sb = new StringBuilder();
@@ -649,9 +687,10 @@ public class PhenotypeFlagManager {
                     String key = etKey.getText().toString().trim();
                     String valStr = etValue.getText().toString().trim();
                     String type = (String) spinner.getSelectedItem();
-                    if (key.isEmpty() || valStr.isEmpty()) return;
+                    if (key.isEmpty() || valStr.isEmpty() || key.startsWith("_")) return;
 
                     SharedPreferences.Editor editor = prefs.edit();
+                    editor.putBoolean(SEEDED_MARKER, true);
                     try {
                         if ("Boolean".equals(type)) {
                             editor.putBoolean(key, Boolean.parseBoolean(valStr));
@@ -719,6 +758,7 @@ public class PhenotypeFlagManager {
                 .setPositiveButton("Save", (d, w) -> {
                     String newVal = etValue.getText().toString().trim();
                     SharedPreferences.Editor editor = prefs.edit();
+                    editor.putBoolean(SEEDED_MARKER, true);
                     try {
                         if (currentVal instanceof Number) {
                             long v = Long.parseLong(newVal);

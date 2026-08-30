@@ -432,8 +432,9 @@ public class Utils {
     public static void seedPhenotypeFlags(Context context) {
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("com.google.android.apps.photos.phenotype", Context.MODE_PRIVATE);
-            if (prefs.getAll().isEmpty()) {
+            if (!prefs.contains("_morphe_flags_seeded")) {
                 prefs.edit()
+                        .putBoolean("_morphe_flags_seeded", true)
                         .putBoolean("45743215", true)
                         .putLong("45802110", 2L)
                         .putLong("45762698", 2L)
