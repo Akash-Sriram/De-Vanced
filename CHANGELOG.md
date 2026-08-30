@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.9.0...v1.9.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* **flags:** prevent auto-reseeding defaults on clear-all and enforce high-contrast dialog buttons ([bbcb716](https://github.com/Akash-Sriram/De-Vanced/commit/bbcb7160ea420512e23ce87b0e5a8d6f6d23dcc2)), closes [hi#contrast](https://github.com/hi/issues/contrast)
+
 # [1.9.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.8.1...v1.9.0) (2026-08-30)
 
 

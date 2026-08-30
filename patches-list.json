@@ -1,5 +1,5 @@
 {
-  "version": "1.9.0",
+  "version": "1.9.1",
   "appNames": {
     "com.google.android.apps.photos": "Google Photos"
   },
@@ -53,71 +53,12 @@
       "options": []
     },
     {
-      "name": "Enable in-app update checker",
-      "description": "Checks for newer patched Google Photos releases on GitHub and prompts to update.",
-      "use": false,
-      "dependencies": [],
-      "compatiblePackages": {
-        "com.google.android.apps.photos": null
-      },
-      "compatibility": [
-        {
-          "name": "Google Photos",
-          "packageName": "com.google.android.apps.photos",
-          "description": null,
-          "appIconColor": 16531260,
-          "targets": [
-            {
-              "version": "",
-              "experimental": false
-            }
-          ]
-        }
-      ],
-      "options": [
-        {
-          "key": "releaseApiUrl",
-          "title": "GitHub Release API URL",
-          "description": "Endpoint to check for the latest patched Google Photos APK release.",
-          "required": true,
-          "type": "kotlin.String",
-          "default": "https://api.github.com/repos/Akash-Sriram/GooglePhotos-Patched/releases/latest",
-          "values": null
-        }
-      ]
-    },
-    {
-      "name": "Fix selected account persistence",
-      "description": "Prevents Google Photos from clearing the selected account after cold start when using MicroG.",
-      "use": true,
-      "dependencies": [],
-      "compatiblePackages": {
-        "com.google.android.apps.photos": null
-      },
-      "compatibility": [
-        {
-          "name": "Google Photos",
-          "packageName": "com.google.android.apps.photos",
-          "description": null,
-          "appIconColor": 16531260,
-          "targets": [
-            {
-              "version": "",
-              "experimental": false
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "GmsCore support",
       "description": "Allows the app to work without root by using a different package name when patched using a GmsCore instead of Google Play Services.",
       "use": true,
       "dependencies": [
         "ResourcePatch",
         "ResourcePatch",
-        "BytecodePatch",
         "BytecodePatch"
       ],
       "compatiblePackages": {
