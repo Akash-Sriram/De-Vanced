@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.8.1...v1.9.0) (2026-08-30)
+
+
+### Features
+
+* **googlephotos:** add PhenotypeFlagManager with Import/Export, clean top toolbar and decouple update checker ([171b43e](https://github.com/Akash-Sriram/De-Vanced/commit/171b43eb31fe56153dcebd82dd4065112d3ff328))
+
 ## [1.8.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.8.0...v1.8.1) (2026-08-29)
 
 

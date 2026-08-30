@@ -1,5 +1,5 @@
 {
-  "version": "1.8.1",
+  "version": "1.9.0",
   "appNames": {
     "com.google.android.apps.photos": "Google Photos"
   },
@@ -27,6 +27,64 @@
         }
       ],
       "options": []
+    },
+    {
+      "name": "Enable Phenotype flag manager",
+      "description": "Enables an in-app flag manager in Photos Settings to customize experimental UI redesigns and feature flags.",
+      "use": true,
+      "dependencies": [],
+      "compatiblePackages": {
+        "com.google.android.apps.photos": null
+      },
+      "compatibility": [
+        {
+          "name": "Google Photos",
+          "packageName": "com.google.android.apps.photos",
+          "description": null,
+          "appIconColor": 16531260,
+          "targets": [
+            {
+              "version": "",
+              "experimental": false
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Enable in-app update checker",
+      "description": "Checks for newer patched Google Photos releases on GitHub and prompts to update.",
+      "use": false,
+      "dependencies": [],
+      "compatiblePackages": {
+        "com.google.android.apps.photos": null
+      },
+      "compatibility": [
+        {
+          "name": "Google Photos",
+          "packageName": "com.google.android.apps.photos",
+          "description": null,
+          "appIconColor": 16531260,
+          "targets": [
+            {
+              "version": "",
+              "experimental": false
+            }
+          ]
+        }
+      ],
+      "options": [
+        {
+          "key": "releaseApiUrl",
+          "title": "GitHub Release API URL",
+          "description": "Endpoint to check for the latest patched Google Photos APK release.",
+          "required": true,
+          "type": "kotlin.String",
+          "default": "https://api.github.com/repos/Akash-Sriram/GooglePhotos-Patched/releases/latest",
+          "values": null
+        }
+      ]
     },
     {
       "name": "Fix selected account persistence",
@@ -82,36 +140,11 @@
       "options": []
     },
     {
-      "name": "Phenotype assets",
-      "description": "Bundles official Google Photos Phenotype flags into the APK assets.",
-      "use": true,
-      "dependencies": [],
-      "compatiblePackages": {
-        "com.google.android.apps.photos": null
-      },
-      "compatibility": [
-        {
-          "name": "Google Photos",
-          "packageName": "com.google.android.apps.photos",
-          "description": null,
-          "appIconColor": 16531260,
-          "targets": [
-            {
-              "version": "",
-              "experimental": false
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
       "name": "Spoof features",
       "description": "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
       "use": true,
       "dependencies": [
         "BytecodePatch",
-        "ResourcePatch",
         "BytecodePatch"
       ],
       "compatiblePackages": {
