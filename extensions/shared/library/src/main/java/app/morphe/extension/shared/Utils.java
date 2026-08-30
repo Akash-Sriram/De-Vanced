@@ -437,15 +437,20 @@ public class Utils {
                 editor.putBoolean("_morphe_flags_seeded", true);
 
                 // Modern UI presets
-                editor.putBoolean("45743215", true); // Floating Date Capsule Pill [ Today ]
-                editor.putLong("45802110", 2L);      // Collections Shelves V2
-                editor.putLong("45762698", 2L);      // Collections Shelves V2
-                editor.putBoolean("3024", true);      // Floating Bottom Navigation Bar
-                editor.putBoolean("4311", true);      // Floating Bottom Navigation Bar
-                editor.putLong("3013", 1L);          // Gemini AI / Ask Photos Tab
-                editor.putBoolean("3026", true);      // Memories Stories
-                editor.putBoolean("3023", true);      // Memories Stories
-                editor.putBoolean("2892", true);      // Memories Stories
+                editor.putBoolean("2675", true);
+                editor.putBoolean("2892", true);
+                editor.putLong("3013", 1L);
+                editor.putBoolean("3023", true);
+                editor.putBoolean("3024", true);
+                editor.putBoolean("3026", true);
+                editor.putBoolean("3606", true);
+                editor.putBoolean("3611", true);
+                editor.putBoolean("4306", true);
+                editor.putBoolean("4311", true);
+                editor.putBoolean("45732792", true);
+                editor.putBoolean("45743215", true);
+                editor.putLong("45762698", 2L);
+                editor.putLong("45802110", 2L);
 
                 editor.apply();
             }

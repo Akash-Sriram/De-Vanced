@@ -359,15 +359,20 @@ public class PhenotypeFlagManager {
         btnRestoreDefaults.setOnClickListener(v -> {
             prefs.edit().clear()
                     .putBoolean(SEEDED_MARKER, true)
-                    .putBoolean("45743215", true)
-                    .putLong("45802110", 2L)
-                    .putLong("45762698", 2L)
-                    .putBoolean("3024", true)
-                    .putBoolean("4311", true)
-                    .putLong("3013", 1L)
-                    .putBoolean("3026", true)
-                    .putBoolean("3023", true)
+                    .putBoolean("2675", true)
                     .putBoolean("2892", true)
+                    .putLong("3013", 1L)
+                    .putBoolean("3023", true)
+                    .putBoolean("3024", true)
+                    .putBoolean("3026", true)
+                    .putBoolean("3606", true)
+                    .putBoolean("3611", true)
+                    .putBoolean("4306", true)
+                    .putBoolean("4311", true)
+                    .putBoolean("45732792", true)
+                    .putBoolean("45743215", true)
+                    .putLong("45762698", 2L)
+                    .putLong("45802110", 2L)
                     .apply();
             Toast.makeText(activity, "Default preset restored!", Toast.LENGTH_SHORT).show();
             refreshFlagsList.run();
