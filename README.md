@@ -1,78 +1,39 @@
 # Google Photos Patches
 
-A modular patch suite for **Google Photos** built on the [Morphe Patcher](https://github.com/MorpheApp/morphe-patcher), forked from [RookieEnough/De-Vanced](https://github.com/RookieEnough/De-Vanced) with enhanced UI customization, built-in photo editor support, and automated releases.
+Morphe patches for Google Photos, forked from [RookieEnough/De-Vanced](https://github.com/RookieEnough/De-Vanced).
 
----
-
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---|---|
-| **Built-in Photo Editor** | Full native Google Photos editor suite (**Enhance, Dynamic, Boost, Auto, Crop, Adjust, Actions, Markup**) without external app dependencies. |
-| **Unlimited Backup** | Spoofs Google Pixel devices to unlock **unlimited original-quality photo & video backups** and Pixel-exclusive editing tools. |
-| **In-App Phenotype Flag Manager** | Real-time feature flag editor accessible directly from **Settings > Morphe Flags**. Search, edit, add, delete, import, export, and reset flags on the fly. |
-| **Modern UI & Navigation** | Out-of-the-box support for the **Floating Date Capsule Pill** (`[ Today ]`), **Redesigned Collections Shelves V2**, **Floating Bottom Navigation Bar**, **Gemini AI / Ask Photos Tab**, and **Memories Stories**. |
-| **MicroG / GmsCore Support** | Runs seamlessly on non-rooted devices using MicroG / GmsCore for Google account authentication. |
-| **Account Avatar Bridge** | Loads your Google profile picture across the top toolbar, account sheet, and account switcher. |
-| **Account Persistence** | Keeps your selected Google account logged in reliably across app restarts. |
-| **DCIM Backup Control** | Gives granular control over individual camera and gallery subfolders rather than forcing entire `DCIM` directory sync. |
+| **MicroG / GmsCore Support** | Runs without root using MicroG / GmsCore for account authentication. |
+| **Built-in Photo Editor** | Native editor with Enhance, Dynamic, Boost, Auto, Crop, Adjust, Actions, and Markup. |
+| **Unlimited Backup** | Unlimited original-quality backup via Google Pixel spoofing. |
+| **Phenotype Flag Manager** | Real-time flag editor in `Settings > Morphe Flags` (add, edit, delete, import, export, reset). |
+| **Modern UI Defaults** | Floating date pill, Shelves V2, floating navigation bar, Gemini/Ask Photos tab, and Memories. |
+| **DCIM Folder Control** | Selective backup for custom folders instead of forcing entire `DCIM`. |
+| **Account Avatar Bridge** | Loads Google profile picture across toolbar and account switcher. |
+| **Account Persistence** | Keeps account signed in across app restarts. |
 
----
+## Default Flags
 
-## 🛠️ Included Default Phenotype Presets
+Preset applied automatically on fresh install and available via "Reset Defaults":
 
-On fresh installs, the patch automatically pre-configures verified modern UI flags:
+| Flag ID | Type | Default | Description |
+|---|---|---|---|
+| `2675` | Boolean | `true` | Enables modern UI components |
+| `2892` | Boolean | `true` | Enables Memories stories |
+| `3013` | Long | `1` | Enables Gemini AI / Ask Photos tab |
+| `3023` | Boolean | `true` | Enables enhanced Memories navigation |
+| `3024` | Boolean | `true` | Enables floating bottom navigation bar |
+| `3026` | Boolean | `true` | Enables redesigned Memories carousel |
+| `3606` | Boolean | `true` | Enables modern layout controls |
+| `3611` | Boolean | `true` | Enables updated UI styling |
+| `4306` | Boolean | `true` | Enables dynamic action bars |
+| `4311` | Boolean | `true` | Enables floating navigation styling |
+| `45732792` | Boolean | `true` | Enables updated grid view components |
+| `45743215` | Boolean | `true` | Enables floating date capsule pill `[ Today ]` |
+| `45762698` | Long | `2` | Enables Collections Shelves V2 layout |
+| `45802110` | Long | `2` | Enables Collections Shelves V2 content view |
 
-```json
-{
-  "2675": true,
-  "2892": true,
-  "3013": 1,
-  "3023": true,
-  "3024": true,
-  "3026": true,
-  "3606": true,
-  "3611": true,
-  "4306": true,
-  "4311": true,
-  "45732792": true,
-  "45743215": true,
-  "45762698": 2,
-  "45802110": 2
-}
-```
-
----
-
-## 🏗️ Building Locally
-
-### Prerequisites
-- **JDK 17 or 21**
-- **Android SDK** (Command-line Tools & Build Tools 35.0.0+)
-- **Gradle** (or use bundled `./gradlew`)
-
-### Build the Patch Bundle (`.mpp`)
-```bash
-./gradlew :extensions:shared:library:assembleRelease :patches:buildAndroid
-```
-The compiled patch bundle will be located at:
-`patches/build/libs/patches-<version>.mpp`
-
-### Patching with Morphe CLI
-```bash
-java -jar morphe-desktop-all.jar patch -p patches/build/libs/patches-<version>.mpp -o GooglePhotos-Patched.apk <path-to-target-google-photos.apk>
-```
-
----
-
-## 📦 Automated Pre-Built Releases
-
-Looking for ready-to-install APKs? Check out our companion automated release repository:
-👉 **[Akash-Sriram/GooglePhotos-Patched](https://github.com/Akash-Sriram/GooglePhotos-Patched/releases)**
-
----
-
-## 📜 Credits & License
-- Forked from [RookieEnough/De-Vanced](https://github.com/RookieEnough/De-Vanced)
-- Powered by [Morphe Patcher](https://github.com/MorpheApp) & [ReVanced](https://github.com/ReVanced)
-- Licensed under the [GNU General Public License v3.0](LICENSE)
+Pre-built APKs: [Akash-Sriram/GooglePhotos-Patched](https://github.com/Akash-Sriram/GooglePhotos-Patched/releases)
