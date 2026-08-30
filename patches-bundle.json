@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-08-30T06:31:43",
-  "description": "## [1.9.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.9.0...v1.9.1) (2026-08-30)\n\n\n### Bug Fixes\n\n* **flags:** prevent auto-reseeding defaults on clear-all and enforce high-contrast dialog buttons ([bbcb716](https://github.com/Akash-Sriram/De-Vanced/commit/bbcb7160ea420512e23ce87b0e5a8d6f6d23dcc2)), closes [hi#contrast](https://github.com/hi/issues/contrast)",
-  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.9.1/patches-1.9.1.mpp",
+  "created_at": "2026-08-30T08:47:12",
+  "description": "# [1.10.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.9.1...v1.10.0) (2026-08-30)\n\n\n### Bug Fixes\n\n* **photos:** fix editor launch by reverting unnecessary package name string rewrites and finalize phenotype UI defaults ([c29f936](https://github.com/Akash-Sriram/De-Vanced/commit/c29f9369760aad5b8f52ba030b328f7a114ac554))\n\n\n### Features\n\n* **flags:** set exact default UI preset flags and fix photo editor launch ([235b894](https://github.com/Akash-Sriram/De-Vanced/commit/235b8941bc4f38d14e3a5e75d2a3ec15d6368e8c))",
+  "download_url": "https://github.com/Akash-Sriram/De-Vanced/releases/download/v1.10.0/patches-1.10.0.mpp",
   "signature_download_url": "",
-  "version": "1.9.1"
+  "version": "1.10.0"
 }

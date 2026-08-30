@@ -1,3 +1,15 @@
+# [1.10.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.9.1...v1.10.0) (2026-08-30)
+
+
+### Bug Fixes
+
+* **photos:** fix editor launch by reverting unnecessary package name string rewrites and finalize phenotype UI defaults ([c29f936](https://github.com/Akash-Sriram/De-Vanced/commit/c29f9369760aad5b8f52ba030b328f7a114ac554))
+
+
+### Features
+
+* **flags:** set exact default UI preset flags and fix photo editor launch ([235b894](https://github.com/Akash-Sriram/De-Vanced/commit/235b8941bc4f38d14e3a5e75d2a3ec15d6368e8c))
+
 ## [1.9.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.9.0...v1.9.1) (2026-08-30)
 
 
