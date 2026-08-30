@@ -37,6 +37,10 @@ val spoofFeaturesPatch = bytecodePatch(
         default = listOf(
             "com.google.android.apps.photos.NEXUS_PRELOAD",
             "com.google.android.apps.photos.nexus_preload",
+            "com.google.android.apps.photos.PIXEL_2017_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2018_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2019_MIDYEAR_PRELOAD",
+            "com.google.android.apps.photos.PIXEL_2019_PRELOAD",
             "com.google.android.feature.PIXEL_EXPERIENCE",
             "com.google.android.feature.PIXEL_2017_EXPERIENCE",
             "com.google.android.feature.PIXEL_2018_EXPERIENCE",
@@ -64,12 +68,7 @@ val spoofFeaturesPatch = bytecodePatch(
 
     val featuresToDisable by stringsOption(
         key = "featuresToDisable",
-        default = listOf(
-            "com.google.android.apps.photos.PIXEL_2017_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2018_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2019_MIDYEAR_PRELOAD",
-            "com.google.android.apps.photos.PIXEL_2019_PRELOAD",
-        ),
+        default = emptyList(),
         title = "Features to disable",
         description = "Google Pixel exclusive features to disable.",
         required = true,
