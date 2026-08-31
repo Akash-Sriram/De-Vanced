@@ -40,6 +40,22 @@ import app.morphe.extension.shared.Logger;
 
 public class PhenotypeFlagManager {
 
+    private static void styleDialogButton(Activity activity, Button btn, int bgColor, int textColor) {
+        if (btn == null) return;
+        float density = activity.getResources().getDisplayMetrics().density;
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(16 * density);
+        bg.setColor(bgColor);
+        btn.setBackground(bg);
+        btn.setTextColor(textColor);
+        btn.setTypeface(null, Typeface.BOLD);
+        int padH = (int) (14 * density);
+        int padV = (int) (6 * density);
+        btn.setPadding(padH, padV, padH, padV);
+    }
+
+
     private static final String PREF_NAME = "com.google.android.apps.photos.phenotype";
     private static final String MORPHE_SETTINGS_PILL_TAG = "morphe_phenotype_settings_pill";
     private static final String SEEDED_MARKER = "_morphe_flags_seeded";
@@ -341,16 +357,8 @@ public class PhenotypeFlagManager {
                     .create();
 
             clearDialog.setOnShowListener(d -> {
-                Button pos = clearDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-                if (pos != null) {
-                    pos.setTextColor(COLOR_DANGER);
-                    pos.setTypeface(null, Typeface.BOLD);
-                }
-                Button neg = clearDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                if (neg != null) {
-                    neg.setTextColor(COLOR_TEXT_SECONDARY);
-                    neg.setTypeface(null, Typeface.BOLD);
-                }
+                styleDialogButton(activity, clearDialog.getButton(AlertDialog.BUTTON_POSITIVE), COLOR_DANGER, 0xFFFFFFFF);
+                styleDialogButton(activity, clearDialog.getButton(AlertDialog.BUTTON_NEGATIVE), COLOR_BG_LIGHT, COLOR_TEXT_PRIMARY);
             });
 
             clearDialog.show();
@@ -386,23 +394,39 @@ public class PhenotypeFlagManager {
             @Override public void afterTextChanged(Editable s) {}
         });
 
+        // Bottom Action Bar (Theme-independent custom styled buttons)
+        LinearLayout bottomBar = new LinearLayout(activity);
+        bottomBar.setOrientation(LinearLayout.HORIZONTAL);
+        bottomBar.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams bbLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        bbLp.setMargins(0, (int) (12 * density), 0, 0);
+        bottomBar.setLayoutParams(bbLp);
+
+        Button btnClose = createStyledButton(activity, "Close", COLOR_TEXT_PRIMARY, COLOR_BG_LIGHT);
+        LinearLayout.LayoutParams closeLp = new LinearLayout.LayoutParams(0, (int) (42 * density), 1f);
+        closeLp.setMargins(0, 0, (int) (6 * density), 0);
+        btnClose.setLayoutParams(closeLp);
+        btnClose.setTextSize(13);
+        bottomBar.addView(btnClose);
+
+        Button btnApplyRestart = createStyledButton(activity, "Apply & Restart", 0xFFFFFFFF, COLOR_ACCENT);
+        LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams(0, (int) (42 * density), 1.4f);
+        applyLp.setMargins((int) (6 * density), 0, 0, 0);
+        btnApplyRestart.setLayoutParams(applyLp);
+        btnApplyRestart.setTextSize(13);
+        bottomBar.addView(btnApplyRestart);
+
+        root.addView(bottomBar);
+
         AlertDialog dialog = new AlertDialog.Builder(activity, AlertDialog.THEME_DEVICE_DEFAULT_LIGHT)
                 .setView(root)
-                .setPositiveButton("Apply & Restart", (d, w) -> restartApp(activity))
-                .setNegativeButton("Close", null)
                 .create();
 
-        dialog.setOnShowListener(d -> {
-            Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            if (pos != null) {
-                pos.setTextColor(COLOR_ACCENT);
-                pos.setTypeface(null, Typeface.BOLD);
-            }
-            Button neg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            if (neg != null) {
-                neg.setTextColor(COLOR_TEXT_SECONDARY);
-                neg.setTypeface(null, Typeface.BOLD);
-            }
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        btnApplyRestart.setOnClickListener(v -> {
+            dialog.dismiss();
+            restartApp(activity);
         });
 
         dialog.show();
@@ -467,16 +491,8 @@ public class PhenotypeFlagManager {
                 .create();
 
         dialog.setOnShowListener(d -> {
-            Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            if (pos != null) {
-                pos.setTextColor(COLOR_PRIMARY);
-                pos.setTypeface(null, Typeface.BOLD);
-            }
-            Button neg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            if (neg != null) {
-                neg.setTextColor(COLOR_TEXT_SECONDARY);
-                neg.setTypeface(null, Typeface.BOLD);
-            }
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE), COLOR_PRIMARY, 0xFFFFFFFF);
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_NEGATIVE), COLOR_BG_LIGHT, COLOR_TEXT_PRIMARY);
         });
 
         dialog.show();
@@ -641,16 +657,8 @@ public class PhenotypeFlagManager {
                 .create();
 
         dialog.setOnShowListener(d -> {
-            Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            if (pos != null) {
-                pos.setTextColor(COLOR_PRIMARY);
-                pos.setTypeface(null, Typeface.BOLD);
-            }
-            Button neg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            if (neg != null) {
-                neg.setTextColor(COLOR_TEXT_SECONDARY);
-                neg.setTypeface(null, Typeface.BOLD);
-            }
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE), COLOR_PRIMARY, 0xFFFFFFFF);
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_NEGATIVE), COLOR_BG_LIGHT, COLOR_TEXT_PRIMARY);
         });
 
         dialog.show();
@@ -713,16 +721,8 @@ public class PhenotypeFlagManager {
                 .create();
 
         dialog.setOnShowListener(d -> {
-            Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            if (pos != null) {
-                pos.setTextColor(COLOR_PRIMARY);
-                pos.setTypeface(null, Typeface.BOLD);
-            }
-            Button neg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            if (neg != null) {
-                neg.setTextColor(COLOR_TEXT_SECONDARY);
-                neg.setTypeface(null, Typeface.BOLD);
-            }
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE), COLOR_PRIMARY, 0xFFFFFFFF);
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_NEGATIVE), COLOR_BG_LIGHT, COLOR_TEXT_PRIMARY);
         });
 
         dialog.show();
@@ -786,21 +786,9 @@ public class PhenotypeFlagManager {
                 .create();
 
         dialog.setOnShowListener(d -> {
-            Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            if (pos != null) {
-                pos.setTextColor(COLOR_PRIMARY);
-                pos.setTypeface(null, Typeface.BOLD);
-            }
-            Button neg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            if (neg != null) {
-                neg.setTextColor(COLOR_TEXT_SECONDARY);
-                neg.setTypeface(null, Typeface.BOLD);
-            }
-            Button neu = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
-            if (neu != null) {
-                neu.setTextColor(COLOR_DANGER);
-                neu.setTypeface(null, Typeface.BOLD);
-            }
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_POSITIVE), COLOR_PRIMARY, 0xFFFFFFFF);
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_NEGATIVE), COLOR_BG_LIGHT, COLOR_TEXT_PRIMARY);
+            styleDialogButton(activity, dialog.getButton(AlertDialog.BUTTON_NEUTRAL), COLOR_BG_RED_TINT, COLOR_DANGER);
         });
 
         dialog.show();
