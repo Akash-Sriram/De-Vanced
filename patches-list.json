@@ -1,9 +1,35 @@
 {
-  "version": "1.11.0",
+  "version": "1.12.0",
   "appNames": {
     "com.google.android.apps.photos": "Google Photos"
   },
   "patches": [
+    {
+      "name": "Account avatar",
+      "description": "Loads and displays account profile avatars across the top toolbar, Bento menu, and account switcher.",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch"
+      ],
+      "compatiblePackages": {
+        "com.google.android.apps.photos": null
+      },
+      "compatibility": [
+        {
+          "name": "Google Photos",
+          "packageName": "com.google.android.apps.photos",
+          "description": null,
+          "appIconColor": 16531260,
+          "targets": [
+            {
+              "version": "",
+              "experimental": false
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
     {
       "name": "Enable DCIM folders backup control",
       "description": "Disables always on backup for the Camera and other DCIM folders, allowing you to control backup for each folder individually. This will make the app default to having no folders backed up.",

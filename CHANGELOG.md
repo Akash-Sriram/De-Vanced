@@ -1,3 +1,15 @@
+# [1.12.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.11.0...v1.12.0) (2026-08-31)
+
+
+### Bug Fixes
+
+* **phenotype:** use theme-independent button backgrounds and high contrast text for Samsung OneUI & AOSP ([2c9e9fe](https://github.com/Akash-Sriram/De-Vanced/commit/2c9e9fe6d04860f652b48c5a4f597d5b4f34010b))
+
+
+### Features
+
+* **googlephotos:** add standalone Account avatar patch and decouple GmsCore support ([1008618](https://github.com/Akash-Sriram/De-Vanced/commit/1008618e4ea510c779573ab1914eb36851f2f0b0))
+
 # [1.11.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.10.0...v1.11.0) (2026-08-30)
 
 
