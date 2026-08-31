@@ -1,34 +1,26 @@
 # De-Vanced (Google Photos)
 
-[![Build](https://github.com/Akash-Sriram/De-Vanced/actions/workflows/release.yml/badge.svg)](https://github.com/Akash-Sriram/De-Vanced/actions)
-[![Latest Release](https://img.shields.io/github/v/release/Akash-Sriram/GooglePhotos-Patched?label=Prebuilt%20APK&color=blue)](https://github.com/Akash-Sriram/GooglePhotos-Patched/releases/latest)
-[![License](https://img.shields.io/github/license/Akash-Sriram/De-Vanced)](LICENSE)
-
-Modular Morphe patches for Google Photos with standalone GmsCore compatibility, Pixel feature spoofing, and dynamic Phenotype flag management.
-
----
+Morphe patches for Google Photos with MicroG / GmsCore support, Pixel spoofing, and Phenotype flag management, derived from [RookieEnough/De-Vanced](https://github.com/RookieEnough/De-Vanced).
 
 ## ✨ Features
 
 | Patch | Description |
 |---|---|
-| **Account avatar** | Standalone profile photo bridge for MicroG/GmsCore with RAM caching and 60fps animations across Toolbar, Bento, and Account Switchers. |
-| **GmsCore support** | Signature verification and service checks bypass for non-root Google account login and persistent sessions. |
-| **Spoof features** | Unlocks unlimited original-quality cloud backup (Pixel XL profile) and Pixel editing tools (Magic Eraser, Portrait Blur, Sky, Unblur, HDR). |
-| **Enable DCIM folders backup control** | Prevents non-camera folders (Screenshots, WhatsApp) from being forced into Camera backup. |
-| **Enable Phenotype flag manager** | In-app real-time flag debugger in `Settings > 🛠️ Morphe Flags` with import/export, batch editing, and auto-seeded UI presets. |
+| **Account avatar** | Profile photo bridge for MicroG / GmsCore across Toolbar, Bento, and Account Switchers. |
+| **GmsCore support** | Non-root Google account authentication and persistent login sessions. |
+| **Spoof features** | Unlimited original-quality backup (Pixel XL) and unlocked Pixel editing tools (Magic Eraser, Portrait Blur, Sky, Unblur). |
+| **Enable DCIM folders backup control** | Independent backup control for non-camera folders (Screenshots, WhatsApp). |
+| **Enable Phenotype flag manager** | In-app flag manager in `Settings > 🛠️ Morphe Flags` with import, export, and UI presets. |
 
----
+## 🛠️ Default Flags
 
-## 🛠️ Pre-Seeded UI Flags
-
-The following phenotype flags are automatically enabled on fresh launch and restorable via **⚡ Reset Defaults**:
+Preset applied on fresh launch and available via **⚡ Reset Defaults**:
 
 | Flag ID | Type | Default | Description |
 |---|:---:|:---:|---|
 | `2675` | Boolean | `true` | Modern UI layout components |
-| `2892` | Boolean | `true` | Memories stories feature |
-| `3013` | Long | `1` | Gemini / Ask Photos bottom tab |
+| `2892` | Boolean | `true` | Memories stories |
+| `3013` | Long | `1` | Gemini / Ask Photos tab |
 | `3023` | Boolean | `true` | Enhanced Memories navigation |
 | `3024` | Boolean | `true` | Floating pill bottom navigation bar |
 | `3026` | Boolean | `true` | Redesigned Memories carousel |
@@ -41,37 +33,6 @@ The following phenotype flags are automatically enabled on fresh launch and rest
 | `45762698` | Long | `2` | Collections Shelves V2 layout |
 | `45802110` | Long | `2` | Collections Shelves V2 content view |
 
----
+Pre-built APKs: [Akash-Sriram/GooglePhotos-Patched](https://github.com/Akash-Sriram/GooglePhotos-Patched/releases)
 
-## 🔨 Building from Source
-
-### 1. Compile Patches Bundle (.mpp)
-```bash
-git clone https://github.com/Akash-Sriram/De-Vanced.git
-cd De-Vanced
-./gradlew :patches:buildAndroid
-```
-Compiled bundle will be in `patches/build/libs/patches-*.mpp`.
-
-### 2. Patch Google Photos with Morphe CLI
-```bash
-java -jar morphe-cli.jar patch \
-  --patches=patches/build/libs/patches-1.10.0.mpp \
-  --out=GooglePhotos-Patched.apk \
-  GooglePhotos-Base.apk
-```
-
----
-
-## 📦 Downloads
-
-- **Pre-built APKs**: [Akash-Sriram/GooglePhotos-Patched/releases](https://github.com/Akash-Sriram/GooglePhotos-Patched/releases)
-- **MicroG / GmsCore**: [ReVanced GmsCore](https://github.com/ReVanced/GmsCore/releases)
-
----
-
-## 📜 Credits & License
-
-- Based on [RookieEnough/De-Vanced](https://github.com/RookieEnough/De-Vanced) and [Morphe](https://github.com/MorpheApp).
-- Licensed under [GNU General Public License v3.0](LICENSE).
 
