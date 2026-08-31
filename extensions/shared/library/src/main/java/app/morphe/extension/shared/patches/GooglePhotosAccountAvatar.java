@@ -9,6 +9,7 @@ import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerFuture;
 import android.app.Activity;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -17,15 +18,14 @@ import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
-import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -33,13 +33,13 @@ import androidx.annotation.Nullable;
 
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -51,8 +51,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,88 +60,120 @@ import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 
 /**
- * Supplies the active Google account avatar to Google Photos' OneGoogle UI.
- *
- * <p>GmsCore stores the account avatar, but the newer OneGoogle APIs used by Photos do not
- * currently expose it. This bridge obtains the authenticated user-info picture, keeps a separate
- * cache for each account and updates the toolbar/account-sheet views without changing account
- * authentication itself.</p>
+ * Universal Google Photos account avatar bridge:
+ * 1. Main Toolbar Disc (og_apd_internal_image_view) — reflection & fuzzy name matching on AccountParticleDisc
+ * 2. Bento Center Large Disc (og_bento_selected_account_avatar)
+ * 3. Bento Collapsed Switch Row Disc (og_bento_header_account_avatar)
+ * 4. Expanded Switch Rows & "Choose an account" Bottom Sheet Rows (smooth 60/120fps, pre-warmed RAM cache)
  */
-final class GooglePhotosAccountAvatar {
+public final class GooglePhotosAccountAvatar {
     private static final String ACCOUNT_TYPE = "app.revanced";
-    private static final String RESOURCE_PACKAGE_NAME = "com.google.android.apps.photos";
-    private static final String PROFILE_TOKEN_TYPE =
-            "oauth2:openid";
-    private static final String USER_INFO_URL =
-            "https://www.googleapis.com/oauth2/v3/userinfo";
+    private static final String PROFILE_TOKEN_TYPE = "oauth2:openid";
+    private static final String USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
+    public static final String NO_ACCOUNT_SENTINEL = "NO_ACCOUNT";
 
-    private static final String PREFS_NAME = "morphe_google_photos_avatar";
-    private static final String PREF_SELECTED_ACCOUNT = "selected_account";
     private static final String CACHE_FILE_PREFIX = "google_account_profile_avatar_";
     private static final long CACHE_MAX_AGE_MILLIS = 6L * 60L * 60L * 1000L;
-    private static final long WINDOW_SCAN_THROTTLE_MILLIS = 250L;
+    private static final long WINDOW_SCAN_THROTTLE_MILLIS = 100L;
+
+    public static final String MORPHE_ACCOUNT_PREFS = "morphe_account_prefs";
+    public static final String KEY_SELECTED_ACCOUNT_INDEX = "selected_account_index";
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}",
             Pattern.CASE_INSENSITIVE
     );
-    private static final String ACCOUNT_AVATAR_OVERLAY_TAG =
-            "morphe_google_photos_account_avatar";
 
-    private static final AtomicReference<String> FETCHING_ACCOUNT = new AtomicReference<>();
+    private static final Map<String, Bitmap> MEMORY_AVATARS = new ConcurrentHashMap<>();
+    private static final Set<String> FETCHING_ACCOUNTS = ConcurrentHashMap.newKeySet();
     private static final AtomicBoolean WINDOW_SCAN_ERROR_LOGGED = new AtomicBoolean();
-    private static final Map<ImageView, String> SCHEDULED_TOOLBAR_AVATARS = new WeakHashMap<>();
-    private static final Map<View, String> SCHEDULED_ACCOUNT_SHEETS = new WeakHashMap<>();
-    private static final Set<View> OBSERVED_WINDOW_ROOTS =
-            Collections.newSetFromMap(new WeakHashMap<>());
+    private static final Set<View> OBSERVED_WINDOW_ROOTS = Collections.newSetFromMap(new WeakHashMap<>());
+    private static final Set<View> WATCHED_TOOLBAR_VIEWS = Collections.newSetFromMap(new WeakHashMap<>());
 
-    @Nullable
-    private static volatile Bitmap avatar;
-    @Nullable
-    private static volatile String avatarAccountName;
-    @Nullable
-    private static volatile String selectedAccountName;
     private static volatile long lastWindowScanUptime;
+    private static volatile String activeSelectedEmail = null;
+    private static boolean lifecycleRegistered = false;
 
     private GooglePhotosAccountAvatar() {
     }
 
-    private static boolean lifecycleRegistered = false;
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public entry points (called from patched bytecode)
+    // ─────────────────────────────────────────────────────────────────────────
 
-    static void install(Activity activity) {
+    public static void install(Activity activity) {
         Logger.printInfo(() -> "Installing the Google Photos account avatar bridge");
+
+        warmUpMemoryCache(activity);
+        restoreSelectedAccount(activity);
+
         if (!lifecycleRegistered && activity.getApplication() != null) {
-            activity.getApplication().registerActivityLifecycleCallbacks(new android.app.Application.ActivityLifecycleCallbacks() {
-                @Override public void onActivityCreated(Activity a, android.os.Bundle b) {
-                    observeWindowRoot(a, a.getWindow().getDecorView());
-                }
-                @Override public void onActivityStarted(Activity a) {
-                    observeWindowRoot(a, a.getWindow().getDecorView());
-                }
-                @Override public void onActivityResumed(Activity a) {
-                    observeWindowRoot(a, a.getWindow().getDecorView());
-                    refresh(a, a.getWindow().getDecorView());
-                }
-                @Override public void onActivityPaused(Activity a) {}
-                @Override public void onActivityStopped(Activity a) {}
-                @Override public void onActivitySaveInstanceState(Activity a, android.os.Bundle b) {}
-                @Override public void onActivityDestroyed(Activity a) {}
-            });
+            activity.getApplication().registerActivityLifecycleCallbacks(
+                    new android.app.Application.ActivityLifecycleCallbacks() {
+                        @Override public void onActivityCreated(Activity a, Bundle b) {
+                            observeWindowRoot(a, a.getWindow().getDecorView());
+                        }
+                        @Override public void onActivityStarted(Activity a) {
+                            observeWindowRoot(a, a.getWindow().getDecorView());
+                        }
+                        @Override public void onActivityResumed(Activity a) {
+                            observeWindowRoot(a, a.getWindow().getDecorView());
+                            scanAllWindowRoots(a, true);
+                        }
+                        @Override public void onActivityPaused(Activity a) {}
+                        @Override public void onActivityStopped(Activity a) {}
+                        @Override public void onActivitySaveInstanceState(Activity a, Bundle b) {}
+                        @Override public void onActivityDestroyed(Activity a) {}
+                    });
             lifecycleRegistered = true;
         }
-        View root = activity.getWindow().getDecorView();
-        observeWindowRoot(activity, root);
-        scanWindowRoots(activity, true);
-        prefetchRegisteredAccounts(activity, root);
-        refresh(activity, root);
 
-        // A few bounded follow-up scans catch windows created immediately after HomeActivity.
-        // Later account-sheet windows are discovered through layout/focus callbacks instead of
-        // polling WindowManagerGlobal for the entire lifetime of the app.
-        Utils.runOnMainThreadDelayed(() -> scanWindowRoots(activity, true), 250);
-        Utils.runOnMainThreadDelayed(() -> scanWindowRoots(activity, true), 1_000);
-        Utils.runOnMainThreadDelayed(() -> scanWindowRoots(activity, true), 2_500);
+        View decorView = activity.getWindow().getDecorView();
+        observeWindowRoot(activity, decorView);
+        prefetchRegisteredAccounts(activity, decorView);
+        scanAllWindowRoots(activity, true);
+
+        Utils.runOnMainThreadDelayed(() -> scanAllWindowRoots(activity, true), 100);
+        Utils.runOnMainThreadDelayed(() -> scanAllWindowRoots(activity, true), 300);
+        Utils.runOnMainThreadDelayed(() -> scanAllWindowRoots(activity, true), 600);
+        Utils.runOnMainThreadDelayed(() -> scanAllWindowRoots(activity, true), 1200);
+        Utils.runOnMainThreadDelayed(() -> scanAllWindowRoots(activity, true), 2000);
     }
+
+    public static void restoreSelectedAccount(Activity activity) {
+        try {
+            SharedPreferences prefs = activity.getSharedPreferences(
+                    MORPHE_ACCOUNT_PREFS, Context.MODE_PRIVATE);
+            int savedIndex = prefs.getInt(KEY_SELECTED_ACCOUNT_INDEX, -99);
+            if (savedIndex == -1) {
+                activeSelectedEmail = NO_ACCOUNT_SENTINEL;
+                return;
+            }
+            if (savedIndex >= 0) {
+                Account[] accounts = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
+                if (savedIndex < accounts.length) {
+                    activeSelectedEmail = accounts[savedIndex].name;
+                    Logger.printInfo(() -> "Restored account selection: index "
+                            + savedIndex + " (" + activeSelectedEmail + ")");
+                }
+            }
+        } catch (Exception e) {
+            Logger.printException(() -> "Could not restore selected account", e);
+        }
+    }
+
+    private static void warmUpMemoryCache(Activity activity) {
+        try {
+            Account[] accounts = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
+            for (Account acc : accounts) {
+                readCachedAvatar(activity, acc.name);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Window root management
+    // ─────────────────────────────────────────────────────────────────────────
 
     private static void observeWindowRoot(Activity activity, View root) {
         if (!OBSERVED_WINDOW_ROOTS.add(root)) return;
@@ -149,661 +181,756 @@ final class GooglePhotosAccountAvatar {
         ViewTreeObserver observer = root.getViewTreeObserver();
         observer.addOnGlobalLayoutListener(() -> {
             refresh(activity, root);
-            scanWindowRoots(activity, false);
+            scanAllWindowRoots(activity, false);
         });
         observer.addOnWindowFocusChangeListener(hasFocus -> {
             refresh(activity, root);
-            scanWindowRoots(activity, true);
+            scanAllWindowRoots(activity, true);
         });
         refresh(activity, root);
     }
 
-    private static void scanWindowRoots(Activity activity, boolean force) {
+    private static void scanAllWindowRoots(Activity activity, boolean force) {
         if (activity.isFinishing() || activity.isDestroyed()) return;
 
         long now = SystemClock.uptimeMillis();
         if (!force && now - lastWindowScanUptime < WINDOW_SCAN_THROTTLE_MILLIS) return;
         lastWindowScanUptime = now;
 
+        refresh(activity, activity.getWindow().getDecorView());
+
         try {
-            Class<?> windowManagerGlobalClass = Class.forName("android.view.WindowManagerGlobal");
-            Object windowManagerGlobal = windowManagerGlobalClass
-                    .getMethod("getInstance")
-                    .invoke(null);
-            java.lang.reflect.Field viewsField =
-                    windowManagerGlobalClass.getDeclaredField("mViews");
+            Class<?> wmgClass = Class.forName("android.view.WindowManagerGlobal");
+            Object wmg = wmgClass.getMethod("getInstance").invoke(null);
+            java.lang.reflect.Field viewsField = wmgClass.getDeclaredField("mViews");
             viewsField.setAccessible(true);
-            Object roots = viewsField.get(windowManagerGlobal);
+            Object roots = viewsField.get(wmg);
             if (roots instanceof List<?>) {
-                for (Object root : (List<?>) roots) {
-                    if (root instanceof View) observeWindowRoot(activity, (View) root);
+                for (Object r : (List<?>) roots) {
+                    if (!(r instanceof View)) continue;
+                    View windowRoot = (View) r;
+                    observeWindowRoot(activity, windowRoot);
+                    refresh(activity, windowRoot);
                 }
             }
         } catch (Exception exception) {
             if (WINDOW_SCAN_ERROR_LOGGED.compareAndSet(false, true)) {
                 Logger.printException(
-                        () -> "Could not inspect Google Photos account-panel windows",
-                        exception
-                );
+                        () -> "Could not scan all window roots for avatar injection",
+                        exception);
             }
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Refresh dispatcher
+    // ─────────────────────────────────────────────────────────────────────────
 
     private static void refresh(Activity activity, View root) {
         if (activity.isFinishing() || activity.isDestroyed()) return;
 
-        boolean signedOutInUi = isToolbarDiscShowingSignedOut(activity, root);
-        if (signedOutInUi) {
-            avatar = null;
-            avatarAccountName = null;
-            selectedAccountName = null;
-            activity.getSharedPreferences(PREFS_NAME, 0)
-                    .edit()
-                    .remove(PREF_SELECTED_ACCOUNT)
-                    .apply();
-        }
+        // Surface 1: Gallery Toolbar Disc (with reflection on AccountParticleDisc)
+        applyToolbarAvatar(activity, root);
 
-        Account account = signedOutInUi ? null : resolveSelectedAccount(activity, root);
-        if (account != null) {
-            activateAccount(activity, account.name);
-        } else if (!signedOutInUi) {
-            Account[] registered = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
-            if (registered.length == 0) {
-                avatar = null;
-                avatarAccountName = null;
-                selectedAccountName = null;
-            }
-        }
+        // Surface 2: Bento Center Large 88x88dp Disc
+        applyBentoCenterAvatar(activity, root);
 
-        applyAvatar(activity, root);
-        applyAvailableAccountsAvatars(activity, root);
+        // Surface 3: Bento Collapsed Switch Row 30x30dp Disc
+        applySwitchAccountRowAvatar(activity, root);
+
+        // Surface 4: Bento Expanded Switch Rows & "Choose an account" Bottom Sheet Rows
         findAndApplyAccountRowAvatars(activity, root);
+    }
 
-        if (account != null
-                && (avatar == null || !sameAccount(account.name, avatarAccountName))) {
-            requestProfileToken(activity, root, account);
+    // ─────────────────────────────────────────────────────────────────────────
+    // Per-surface avatar appliers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Surface 1: Main Gallery Toolbar Disc (44x44dp og_apd_internal_image_view) */
+    private static void applyToolbarAvatar(Activity activity, View root) {
+        int id = getResId(activity, "og_apd_internal_image_view");
+        if (id == 0) return;
+        View v = root.findViewById(id);
+        if (v == null) return;
+
+        // If signed out or "Use without an account", do not touch toolbar view
+        if (NO_ACCOUNT_SENTINEL.equals(activeSelectedEmail) || isSignedOutToolbar(v)) {
+            return;
+        }
+
+        String email = findEmailOrAccountNearView(activity, v);
+        if (email == null) email = activeSelectedEmail;
+        if (email == null) email = resolveActiveEmail(activity);
+        if (email == null || NO_ACCOUNT_SENTINEL.equals(email)) return;
+
+        if (activeSelectedEmail == null) {
+            activeSelectedEmail = email;
+            persistAccountSelection(activity, email);
+        }
+
+        Bitmap bmp = getOrFetchAvatar(activity, root, email);
+        if (bmp != null) {
+            setAvatarOnView(activity, v, bmp);
+        }
+
+        attachPersistentToolbarWatcher(activity, root, v);
+    }
+
+    private static void attachPersistentToolbarWatcher(Activity activity, View root, View toolbarView) {
+        if (!WATCHED_TOOLBAR_VIEWS.add(toolbarView)) return;
+
+        toolbarView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (NO_ACCOUNT_SENTINEL.equals(activeSelectedEmail) || isSignedOutToolbar(v)) return;
+            String curEmail = findEmailOrAccountNearView(activity, v);
+            if (curEmail == null) curEmail = activeSelectedEmail;
+            if (curEmail == null) curEmail = resolveActiveEmail(activity);
+            if (curEmail == null || NO_ACCOUNT_SENTINEL.equals(curEmail)) return;
+
+            Bitmap bmp = getOrFetchAvatar(activity, root, curEmail);
+            if (bmp != null) setAvatarOnView(activity, v, bmp);
+        });
+
+        ViewParent parent = toolbarView.getParent();
+        if (parent instanceof View && WATCHED_TOOLBAR_VIEWS.add((View) parent)) {
+            ((View) parent).addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+                if (NO_ACCOUNT_SENTINEL.equals(activeSelectedEmail) || isSignedOutToolbar(toolbarView)) return;
+                String curEmail = findEmailOrAccountNearView(activity, toolbarView);
+                if (curEmail == null) curEmail = activeSelectedEmail;
+                if (curEmail == null) curEmail = resolveActiveEmail(activity);
+                if (curEmail == null || NO_ACCOUNT_SENTINEL.equals(curEmail)) return;
+
+                Bitmap bmp = getOrFetchAvatar(activity, root, curEmail);
+                if (bmp != null) setAvatarOnView(activity, toolbarView, bmp);
+            });
         }
     }
 
-    private static boolean isToolbarDiscShowingSignedOut(Activity activity, View root) {
-        int selectedAccountId = getResourceId(activity, "selected_account_disc");
-        if (selectedAccountId != 0) {
-            View disc = root.findViewById(selectedAccountId);
-            if (disc != null && disc.isShown()) {
-                String email = findEmailInViewAndParents(disc);
-                return email == null;
+    private static boolean isSignedOutToolbar(View view) {
+        View cur = view;
+        for (int d = 0; cur != null && d < 6; d++) {
+            CharSequence desc = cur.getContentDescription();
+            if (desc != null) {
+                String s = desc.toString().toLowerCase(Locale.ROOT);
+                if (s.contains("without an account") || s.contains("signed out") ||
+                    s.contains("no account") || s.contains("use without")) {
+                    return true;
+                }
             }
-        }
-        int toolbarAvatarId = getResourceId(activity, "og_apd_internal_image_view");
-        if (toolbarAvatarId != 0) {
-            View avatarView = root.findViewById(toolbarAvatarId);
-            if (avatarView != null && avatarView.isShown()) {
-                String email = findEmailInViewAndParents(avatarView);
-                return email == null;
-            }
+            ViewParent p = cur.getParent();
+            cur = p instanceof View ? (View) p : null;
         }
         return false;
     }
 
+    /** Surface 2: Bento Center Large 88x88dp Disc */
+    private static void applyBentoCenterAvatar(Activity activity, View root) {
+        int centerId = getResId(activity, "og_bento_selected_account_avatar");
+        View centerDisc = centerId != 0 ? root.findViewById(centerId) : null;
+        if (centerDisc == null) return;
+
+        String email = readEmailFromBentoHeader(activity, root);
+        if (email == null) email = activeSelectedEmail;
+        if (email == null) email = resolveActiveEmail(activity);
+        if (email == null || NO_ACCOUNT_SENTINEL.equals(email)) return;
+
+        // Synchronize activeSelectedEmail with what Bento header is displaying
+        if (!sameEmail(activeSelectedEmail, email)) {
+            activeSelectedEmail = email;
+            persistAccountSelection(activity, email);
+        }
+
+        Bitmap bmp = getOrFetchAvatar(activity, root, email);
+        if (bmp != null) setAvatarOnView(activity, centerDisc, bmp);
+    }
+
+    /** Surface 3: Bento Collapsed Switch Row 30x30dp Disc */
+    private static void applySwitchAccountRowAvatar(Activity activity, View root) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+
+        int switchDiscId = getResId(activity, "og_bento_header_account_avatar");
+        if (switchDiscId == 0) return;
+        View switchDisc = root.findViewById(switchDiscId);
+        if (switchDisc == null) return;
+
+        Account[] accounts = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
+        if (accounts.length <= 1) return;
+
+        String activeEmail = readEmailFromBentoHeader(activity, root);
+        if (activeEmail == null) activeEmail = activeSelectedEmail;
+        if (activeEmail == null || NO_ACCOUNT_SENTINEL.equals(activeEmail)) activeEmail = accounts[0].name;
+
+        Account secondary = null;
+        for (Account acc : accounts) {
+            if (!sameEmail(acc.name, activeEmail)) { secondary = acc; break; }
+        }
+        if (secondary == null) return;
+
+        Bitmap bmp = getOrFetchAvatar(activity, root, secondary.name);
+        if (bmp != null) setAvatarOnView(activity, switchDisc, bmp);
+    }
+
+    /** Surface 4: Expanded Switch Rows & "Choose an account" Bottom Sheet Rows */
+    private static void findAndApplyAccountRowAvatars(Activity activity, View root) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+
+        List<TextView> emailViews = new ArrayList<>();
+        collectEmailTextViews(root, emailViews);
+
+        for (TextView tv : emailViews) {
+            String email = extractEmail(tv.getText());
+            if (email == null) email = extractEmail(tv.getContentDescription());
+            if (email == null) continue;
+
+            attachAccountSelectionHook(activity, tv, email);
+
+            Bitmap bmp = getOrFetchAvatar(activity, root, email);
+            if (bmp == null) continue;
+
+            View disc = findRowAvatarDisc(activity, tv);
+            if (disc != null) setAvatarOnView(activity, disc, bmp);
+        }
+
+        attachSignedOutRowHook(activity, root);
+    }
+
+    private static void attachSignedOutRowHook(Activity activity, View root) {
+        List<TextView> allTvs = new ArrayList<>();
+        collectAllTextViews(root, allTvs);
+        for (TextView tv : allTvs) {
+            CharSequence text = tv.getText();
+            if (text != null) {
+                String s = text.toString().toLowerCase(Locale.ROOT);
+                if (s.contains("without an account") || s.contains("use photos without an account")) {
+                    ViewParent p = tv.getParent();
+                    for (int d = 0; d < 3 && p instanceof ViewGroup; d++) {
+                        ((ViewGroup) p).setOnTouchListener((v, event) -> {
+                            if (event.getAction() == MotionEvent.ACTION_UP) {
+                                activeSelectedEmail = NO_ACCOUNT_SENTINEL;
+                                persistAccountSelection(activity, NO_ACCOUNT_SENTINEL);
+                                Utils.runOnMainThreadDelayed(() -> scanAllWindowRoots(activity, true), 50);
+                            }
+                            return false;
+                        });
+                        p = p.getParent();
+                    }
+                }
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Touch hook
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static void attachAccountSelectionHook(Activity activity, TextView tv, String email) {
+        ViewParent parent = tv.getParent();
+        for (int depth = 0; depth < 3 && parent instanceof ViewGroup; depth++) {
+            ViewGroup row = (ViewGroup) parent;
+            row.setOnTouchListener((v, event) -> {
+                int action = event.getAction();
+                if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP) {
+                    activeSelectedEmail = email;
+                    persistAccountSelection(activity, email);
+                    Utils.runOnMainThreadDelayed(() -> scanAllWindowRoots(activity, true), 50);
+                }
+                return false;
+            });
+            parent = parent.getParent();
+        }
+    }
+
+    private static void persistAccountSelection(Activity activity, String email) {
+        try {
+            if (NO_ACCOUNT_SENTINEL.equals(email)) {
+                activity.getSharedPreferences(MORPHE_ACCOUNT_PREFS, Context.MODE_PRIVATE)
+                        .edit()
+                        .putInt(KEY_SELECTED_ACCOUNT_INDEX, -1)
+                        .apply();
+                return;
+            }
+
+            Account[] accounts = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
+            for (int i = 0; i < accounts.length; i++) {
+                if (sameEmail(accounts[i].name, email)) {
+                    activity.getSharedPreferences(MORPHE_ACCOUNT_PREFS, Context.MODE_PRIVATE)
+                            .edit()
+                            .putInt(KEY_SELECTED_ACCOUNT_INDEX, i)
+                            .apply();
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            Logger.printException(() -> "Could not persist account selection", e);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Avatar resolution helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Nullable
-    private static Account resolveSelectedAccount(Activity activity, View root) {
-        if (isToolbarDiscShowingSignedOut(activity, root)) {
+    private static Bitmap getOrFetchAvatar(Activity activity, View root, String email) {
+        if (email == null || NO_ACCOUNT_SENTINEL.equals(email)) return null;
+        Bitmap cached = readCachedAvatar(activity, email);
+        if (cached != null) return cached;
+        Account account = findAccount(activity, email);
+        if (account != null) fetchProfileToken(activity, root, account);
+        return null;
+    }
+
+    @Nullable
+    private static String readEmailFromBentoHeader(Activity activity, View root) {
+        String[] headerIds = {
+                "og_bento_account_menu_title_text",
+                "og_bento_header_title",
+                "og_bento_subtitle_text",
+                "og_bento_account_name_text",
+                "og_bento_email_text",
+        };
+        for (String name : headerIds) {
+            int id = getResId(activity, name);
+            if (id == 0) continue;
+            View v = root.findViewById(id);
+            if (!(v instanceof TextView)) continue;
+            String email = extractEmail(((TextView) v).getText());
+            if (email != null) return email;
+        }
+
+        List<TextView> tvs = new ArrayList<>();
+        collectEmailTextViews(root, tvs);
+        if (!tvs.isEmpty()) {
+            String e = extractEmail(tvs.get(0).getText());
+            if (e != null) return e;
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private static String resolveActiveEmail(Activity activity) {
+        if (activeSelectedEmail != null) {
+            return NO_ACCOUNT_SENTINEL.equals(activeSelectedEmail) ? null : activeSelectedEmail;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static String findEmailOrAccountNearView(Activity activity, @Nullable View view) {
+        if (view == null) return null;
+        Account[] accounts = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
+        if (accounts.length == 0) return null;
+
+        View cur = view;
+        for (int d = 0; cur != null && d < 6; d++) {
+            // 1. Check content description for email or display name
+            CharSequence desc = cur.getContentDescription();
+            if (desc != null) {
+                String email = extractEmail(desc);
+                if (email != null) return email;
+
+                String sDesc = desc.toString().toLowerCase(Locale.ROOT);
+                if (sDesc.contains("without an account") || sDesc.contains("no account") || sDesc.contains("signed out")) {
+                    return NO_ACCOUNT_SENTINEL;
+                }
+
+                // Match username or clean alphanumeric prefix (e.g. "akashsriram" matches "Akashsriram Ganapathy")
+                String cleanDesc = sDesc.replaceAll("[^a-z0-9]", "");
+                for (Account acc : accounts) {
+                    String namePart = acc.name.toLowerCase(Locale.ROOT);
+                    int atIdx = namePart.indexOf('@');
+                    String userPart = atIdx > 0 ? namePart.substring(0, atIdx) : namePart;
+                    String cleanUser = userPart.replaceAll("[^a-z0-9]", "");
+
+                    if (sDesc.contains(namePart) || cleanDesc.contains(cleanUser)) {
+                        return acc.name;
+                    }
+                    // Strip suffixes like "work" or numbers
+                    if (cleanUser.length() > 5 && cleanDesc.contains(cleanUser.substring(0, 5))) {
+                        return acc.name;
+                    }
+                }
+            }
+
+            // 2. Check reflection on fields of the AccountParticleDisc ViewGroup
+            try {
+                Field[] fields = cur.getClass().getDeclaredFields();
+                for (Field f : fields) {
+                    f.setAccessible(true);
+                    Object val = f.get(cur);
+                    if (val != null) {
+                        String valStr = val.toString().toLowerCase(Locale.ROOT);
+                        for (Account acc : accounts) {
+                            if (valStr.contains(acc.name.toLowerCase(Locale.ROOT))) {
+                                return acc.name;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            ViewParent p = cur.getParent();
+            cur = p instanceof View ? (View) p : null;
+        }
+
+        return null;
+    }
+
+    /** Surface 4 Row Disc Discovery (Recursive search through container ViewGroups) */
+    @Nullable
+    private static View findRowAvatarDisc(Activity activity, TextView emailTv) {
+        int[] discIds = {
+                getResId(activity, "og_bento_available_account_avatar"),
+                getResId(activity, "account_avatar"),
+                getResId(activity, "account_header_avatar"),
+                getResId(activity, "account_particle_disc_item"),
+                getResId(activity, "og_apd_internal_image_view"),
+                android.R.id.icon,
+        };
+
+        ViewParent parent = emailTv.getParent();
+        for (int depth = 0; depth < 4 && parent instanceof ViewGroup; depth++) {
+            ViewGroup row = (ViewGroup) parent;
+
+            for (int discId : discIds) {
+                if (discId == 0) continue;
+                View disc = row.findViewById(discId);
+                if (disc != null && !isExcluded(activity, disc)) return disc;
+            }
+
+            View disc = findAvatarLikeChildRecursive(activity, row, emailTv, 0);
+            if (disc != null) return disc;
+
+            parent = row.getParent();
+        }
+        return null;
+    }
+
+    @Nullable
+    private static View findAvatarLikeChildRecursive(Activity activity, ViewGroup group, View exclude, int depth) {
+        if (depth > 3) return null;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child == exclude || isExcluded(activity, child)) continue;
+
+            String cls = child.getClass().getName();
+            if (cls.contains("Disc") || cls.contains("Avatar")) return child;
+
+            int id = child.getId();
+            if (id != 0 && (id == getResId(activity, "og_bento_available_account_avatar") ||
+                            id == getResId(activity, "account_avatar") ||
+                            id == getResId(activity, "photos_settings_account_avatar") ||
+                            id == getResId(activity, "photos_settings_account_adapter_avatar") ||
+                            id == getResId(activity, "og_apd_internal_image_view") ||
+                            id == android.R.id.icon)) {
+                return child;
+            }
+
+            if (child instanceof ImageView) {
+                int w = child.getWidth(), h = child.getHeight();
+                if (w == 0 || h == 0 || (w <= 150 && h <= 150)) {
+                    return child;
+                }
+            } else if (child instanceof ViewGroup) {
+                View nested = findAvatarLikeChildRecursive(activity, (ViewGroup) child, exclude, depth + 1);
+                if (nested != null) return nested;
+            }
+        }
+        return null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // View application
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static void setAvatarOnView(Activity activity, View view, Bitmap bitmap) {
+        if (view == null || bitmap == null || isExcluded(activity, view)) return;
+
+        List<ImageView> targets = new ArrayList<>();
+        if (view instanceof ImageView) {
+            targets.add((ImageView) view);
+        } else if (view instanceof ViewGroup) {
+            collectAvatarImageViews(activity, (ViewGroup) view, targets);
+        }
+
+        for (ImageView target : targets) {
+            if (isExcluded(activity, target)) continue;
+            int size = Math.min(target.getWidth(), target.getHeight());
+            Bitmap scaled = (size > 0 && (bitmap.getWidth() != size || bitmap.getHeight() != size))
+                    ? Bitmap.createScaledBitmap(bitmap, size, size, true)
+                    : bitmap;
+            target.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            target.setImageDrawable(new BitmapDrawable(target.getResources(), scaled));
+            if (target.getForeground() != null) target.setForeground(null);
+            target.setVisibility(View.VISIBLE);
+            target.bringToFront();
+            target.invalidate();
+        }
+
+        if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            if (vg.getForeground() != null) vg.setForeground(null);
+            vg.invalidate();
+        }
+        view.invalidate();
+    }
+
+    private static void collectAvatarImageViews(Activity activity, ViewGroup group, List<ImageView> out) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (isExcluded(activity, child)) continue;
+            if (child instanceof ImageView) out.add((ImageView) child);
+            else if (child instanceof ViewGroup) collectAvatarImageViews(activity, (ViewGroup) child, out);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Exclusion guard
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static boolean isExcluded(Activity activity, @Nullable View view) {
+        if (view == null) return true;
+        int id = view.getId();
+        if (id != 0 && id != View.NO_ID) {
+            if (id == getResId(activity, "og_bento_toolbar_close_button")) return true;
+            if (id == getResId(activity, "og_collapsed_chevron")) return true;
+            try {
+                String name = activity.getResources().getResourceEntryName(id).toLowerCase(Locale.ROOT);
+                if (name.contains("close") || name.contains("chevron") || name.contains("arrow") ||
+                        name.contains("toggle") || name.contains("settings_icon") ||
+                        name.contains("help_icon") || name.contains("backup_status") ||
+                        name.contains("feedback") || name.contains("check_mark") ||
+                        name.contains("radio") || name.contains("switch")) return true;
+            } catch (Exception ignored) {}
+        }
+        CharSequence desc = view.getContentDescription();
+        if (desc != null) {
+            String d = desc.toString().toLowerCase(Locale.ROOT);
+            if (d.contains("close") || d.contains("dismiss") || d.contains("collapse") ||
+                    d.contains("expand") || d.contains("backup complete") || d.contains("settings"))
+                return true;
+        }
+        return false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Prefetch + token fetch
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static void prefetchRegisteredAccounts(Activity activity, View root) {
+        Utils.runOnBackgroundThread(() -> {
+            try {
+                Account[] accounts = AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE);
+                boolean anyReady = false;
+                for (Account acc : accounts) {
+                    if (readCachedAvatar(activity, acc.name) != null) anyReady = true;
+                    else fetchProfileToken(activity, root, acc);
+                }
+                if (anyReady) Utils.runOnMainThread(() -> refresh(activity, root));
+            } catch (Exception e) {
+                Logger.printException(() -> "Could not prefetch account avatars", e);
+            }
+        });
+    }
+
+    private static void fetchProfileToken(Activity activity, View root, Account account) {
+        String key = account.name.toLowerCase(Locale.ROOT);
+        if (MEMORY_AVATARS.containsKey(key) || !FETCHING_ACCOUNTS.add(key)) return;
+
+        try {
+            Bundle options = new Bundle();
+            options.putString("androidPackageName", activity.getPackageName());
+            AccountManagerFuture<Bundle> future = AccountManager.get(activity).getAuthToken(
+                    account, PROFILE_TOKEN_TYPE, options, false, null, null);
+
+            Utils.runOnBackgroundThread(() -> {
+                try {
+                    Bundle result = future.getResult();
+                    String token = result.getString(AccountManager.KEY_AUTHTOKEN);
+                    if (token != null && !token.isEmpty()) {
+                        Bitmap avatar = downloadAvatar(token);
+                        if (avatar != null) {
+                            writeCachedAvatar(activity, account.name, avatar);
+                            Utils.runOnMainThread(() -> scanAllWindowRoots(activity, true));
+                        }
+                    }
+                } catch (Exception e) {
+                    Logger.printException(() -> "Could not load account avatar", e);
+                } finally {
+                    FETCHING_ACCOUNTS.remove(key);
+                }
+            });
+        } catch (Exception e) {
+            FETCHING_ACCOUNTS.remove(key);
+            Logger.printException(() -> "Could not request avatar token", e);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Network
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nullable
+    private static Bitmap downloadAvatar(String token) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(USER_INFO_URL).openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Authorization", "Bearer " + token);
+        conn.setRequestProperty("Accept", "application/json");
+        conn.setConnectTimeout(10000);
+        conn.setReadTimeout(10000);
+        if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) { conn.disconnect(); return null; }
+
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader r = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = r.readLine()) != null) sb.append(line);
+        } finally { conn.disconnect(); }
+
+        String pictureUrl = new JSONObject(sb.toString()).optString("picture", null);
+        if (pictureUrl == null || pictureUrl.isEmpty()) return null;
+
+        HttpURLConnection imgConn = (HttpURLConnection) new URL(pictureUrl).openConnection();
+        imgConn.setConnectTimeout(10000);
+        imgConn.setReadTimeout(10000);
+        try (InputStream in = imgConn.getInputStream()) {
+            return makeCircular(BitmapFactory.decodeStream(in));
+        } finally { imgConn.disconnect(); }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Bitmap helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nullable
+    private static Bitmap makeCircular(@Nullable Bitmap src) {
+        if (src == null) return null;
+        int size = Math.min(src.getWidth(), src.getHeight());
+        Bitmap out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(out);
+
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+        canvas.drawARGB(0, 0, 0, 0);
+        p.setColor(0xFF000000);
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, p);
+
+        p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        int ox = (src.getWidth() - size) / 2, oy = (src.getHeight() - size) / 2;
+        canvas.drawBitmap(src, new Rect(ox, oy, ox + size, oy + size), new Rect(0, 0, size, size), p);
+        p.setXfermode(null);
+
+        Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+        ring.setStyle(Paint.Style.STROKE);
+        float stroke = Math.max(2f, size * 0.025f);
+        ring.setStrokeWidth(stroke);
+        ring.setColor(0x25000000);
+        canvas.drawCircle(size / 2f, size / 2f, (size / 2f) - (stroke / 2f), ring);
+        return out;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Cache
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nullable
+    private static Bitmap readCachedAvatar(Activity activity, String email) {
+        if (email == null || NO_ACCOUNT_SENTINEL.equals(email)) return null;
+        String key = email.toLowerCase(Locale.ROOT);
+        Bitmap mem = MEMORY_AVATARS.get(key);
+        if (mem != null) return mem;
+
+        File f = cacheFile(activity, email);
+        if (!f.isFile()) return null;
+        if (System.currentTimeMillis() - f.lastModified() > CACHE_MAX_AGE_MILLIS) {
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
             return null;
         }
-
-        String accountFromUi = findSelectedAccountName(activity, root);
-        AccountManager accountManager = AccountManager.get(activity);
-        Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
-
-        if (accountFromUi != null) {
-            Account visibleAccount = findAccount(accounts, accountFromUi);
-            return visibleAccount != null
-                    ? visibleAccount
-                    : new Account(accountFromUi, ACCOUNT_TYPE);
+        try (InputStream in = new FileInputStream(f)) {
+            Bitmap bmp = makeCircular(BitmapFactory.decodeStream(in));
+            if (bmp != null) MEMORY_AVATARS.put(key, bmp);
+            return bmp;
+        } catch (Exception e) {
+            Logger.printException(() -> "Could not read cached avatar", e);
+            return null;
         }
-
-        Account current = findAccount(accounts, selectedAccountName);
-        if (current != null) return current;
-
-        SharedPreferences preferences = activity.getSharedPreferences(PREFS_NAME, 0);
-        String rememberedName = preferences.getString(PREF_SELECTED_ACCOUNT, null);
-        Account remembered = findAccount(accounts, rememberedName);
-        if (remembered != null) return remembered;
-
-        return null;
     }
 
-    @Nullable
-    private static Account findAccount(Account[] accounts, @Nullable String accountName) {
-        if (accountName == null) return null;
-        for (Account account : accounts) {
-            if (sameAccount(account.name, accountName)) return account;
-        }
-        return null;
+    private static void writeCachedAvatar(Activity activity, String email, Bitmap bitmap) {
+        if (email == null || bitmap == null || NO_ACCOUNT_SENTINEL.equals(email)) return;
+        MEMORY_AVATARS.put(email.toLowerCase(Locale.ROOT), bitmap);
+        Utils.runOnBackgroundThread(() -> {
+            try (FileOutputStream out = new FileOutputStream(cacheFile(activity, email))) {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            } catch (Exception e) {
+                Logger.printException(() -> "Could not cache avatar", e);
+            }
+        });
     }
 
-    @Nullable
-    private static String findSelectedAccountName(Activity activity, View root) {
-        int selectedAccountId = getResourceId(activity, "selected_account_disc");
-        if (selectedAccountId != 0) {
-            String email = findEmailInViewAndParents(root.findViewById(selectedAccountId));
-            if (email != null) return email;
-        }
-
-        int toolbarAvatarId = getResourceId(activity, "og_apd_internal_image_view");
-        if (toolbarAvatarId != 0) {
-            String email = findEmailInViewAndParents(root.findViewById(toolbarAvatarId));
-            if (email != null) return email;
-        }
-
-        int accountSheetAvatarId = getResourceId(activity, "og_bento_selected_account_avatar");
-        if (accountSheetAvatarId != 0) {
-            return findEmailInViewAndParents(root.findViewById(accountSheetAvatarId));
-        }
-
-        return null;
+    private static File cacheFile(Activity activity, String email) {
+        return new File(activity.getCacheDir(), CACHE_FILE_PREFIX + hashEmail(email) + ".png");
     }
 
-    private static int getResourceId(Activity activity, String name) {
+    private static String hashEmail(String email) {
+        try {
+            MessageDigest d = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = d.digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(bytes.length * 2);
+            for (byte b : bytes) hex.append(String.format(Locale.ROOT, "%02x", b & 0xff));
+            return hex.toString();
+        } catch (Exception e) {
+            return Integer.toHexString(email.toLowerCase(Locale.ROOT).hashCode());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Utilities
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static int getResId(Activity activity, String name) {
         int id = activity.getResources().getIdentifier(name, "id", activity.getPackageName());
         if (id != 0) return id;
-        return activity.getResources().getIdentifier(name, "id", RESOURCE_PACKAGE_NAME);
+        return activity.getResources().getIdentifier(name, "id", "com.google.android.apps.photos");
     }
 
     @Nullable
-    private static String findEmailInViewAndParents(@Nullable View view) {
-        View current = view;
-        for (int depth = 0; current != null && depth < 5; depth++) {
-            String email = extractEmail(current.getContentDescription());
-            if (email != null) return email;
-
-            ViewParent parent = current.getParent();
-            current = parent instanceof View ? (View) parent : null;
+    private static Account findAccount(Activity activity, String email) {
+        for (Account acc : AccountManager.get(activity).getAccountsByType(ACCOUNT_TYPE)) {
+            if (sameEmail(acc.name, email)) return acc;
         }
         return null;
+    }
+
+    private static void collectEmailTextViews(View view, List<TextView> out) {
+        if (view == null) return;
+        if (view instanceof TextView) {
+            TextView tv = (TextView) view;
+            if (extractEmail(tv.getText()) != null || extractEmail(tv.getContentDescription()) != null)
+                out.add(tv);
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) collectEmailTextViews(vg.getChildAt(i), out);
+        }
+    }
+
+    private static void collectAllTextViews(View view, List<TextView> out) {
+        if (view == null) return;
+        if (view instanceof TextView) out.add((TextView) view);
+        if (view instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) collectAllTextViews(vg.getChildAt(i), out);
+        }
     }
 
     @Nullable
     private static String extractEmail(@Nullable CharSequence text) {
         if (text == null) return null;
-        Matcher matcher = EMAIL_PATTERN.matcher(text);
-        return matcher.find() ? matcher.group() : null;
+        Matcher m = EMAIL_PATTERN.matcher(text);
+        return m.find() ? m.group() : null;
     }
 
-
-
-    private static void requestProfileToken(Activity activity, View root, Account account) {
-        final String accountName = account.name;
-        if (avatar != null && sameAccount(accountName, avatarAccountName)) return;
-        if (!FETCHING_ACCOUNT.compareAndSet(null, accountName)) return;
-
-        try {
-            Logger.printInfo(() -> "Requesting the Google Photos avatar token");
-
-            Bundle options = new Bundle();
-            options.putString("androidPackageName", activity.getPackageName());
-            AccountManagerFuture<Bundle> future = AccountManager.get(activity).getAuthToken(
-                    account,
-                    PROFILE_TOKEN_TYPE,
-                    options,
-                    false,
-                    null,
-                    null
-            );
-
-            Utils.runOnBackgroundThread(() -> {
-                boolean refreshDifferentAccount = false;
-                try {
-                    Bundle result = future.getResult();
-                    String token = result.getString(AccountManager.KEY_AUTHTOKEN);
-                    if (token == null || token.isEmpty()) {
-                        throw new IllegalStateException("Google auth token was empty");
-                    }
-
-                    Bitmap downloadedAvatar = downloadAvatar(token);
-                    if (downloadedAvatar == null) {
-                        throw new IllegalStateException("Google user-info returned no avatar");
-                    }
-
-                    writeCachedAvatar(activity, accountName, downloadedAvatar);
-
-                    avatar = downloadedAvatar;
-                    avatarAccountName = accountName;
-                    selectedAccountName = accountName;
-                    Logger.printInfo(() -> "Google Photos account avatar loaded successfully!");
-                    Utils.runOnMainThread(() -> applyAvatar(activity, root));
-                } catch (Exception exception) {
-                    Logger.printException(
-                            () -> "Could not load the Google Photos account avatar",
-                            exception
-                    );
-                    refreshDifferentAccount = selectedAccountName != null
-                            && !sameAccount(accountName, selectedAccountName);
-                } finally {
-                    FETCHING_ACCOUNT.compareAndSet(accountName, null);
-                    if (refreshDifferentAccount) {
-                        Utils.runOnMainThread(() -> refresh(activity, root));
-                    }
-                }
-            });
-        } catch (Exception exception) {
-            FETCHING_ACCOUNT.compareAndSet(accountName, null);
-            Logger.printException(
-                    () -> "Could not request the Google Photos profile token",
-                    exception
-            );
-        }
-    }
-
-    @Nullable
-    private static Bitmap downloadAvatar(String token) throws Exception {
-        HttpURLConnection userInfoConnection = openConnection(USER_INFO_URL);
-        userInfoConnection.setRequestProperty("Authorization", "Bearer " + token);
-
-        try {
-            int status = userInfoConnection.getResponseCode();
-            if (status != HttpURLConnection.HTTP_OK) {
-                throw new IllegalStateException("Google user-info HTTP status " + status);
-            }
-
-            JSONObject response;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    userInfoConnection.getInputStream(), StandardCharsets.UTF_8))) {
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line);
-                }
-                response = new JSONObject(sb.toString());
-            }
-
-            String pictureUrl = response.optString("picture", null);
-            if (pictureUrl == null || pictureUrl.isEmpty()) return null;
-
-            HttpURLConnection imageConnection = openConnection(pictureUrl);
-            try {
-                if (imageConnection.getResponseCode() != HttpURLConnection.HTTP_OK) return null;
-                try (InputStream stream = new BufferedInputStream(imageConnection.getInputStream())) {
-                    return getCircularBitmap(BitmapFactory.decodeStream(stream));
-                }
-            } finally {
-                imageConnection.disconnect();
-            }
-        } finally {
-            userInfoConnection.disconnect();
-        }
-    }
-
-    private static HttpURLConnection openConnection(String url) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setConnectTimeout(15_000);
-        connection.setReadTimeout(15_000);
-        connection.setInstanceFollowRedirects(true);
-        connection.setRequestProperty("Accept", "application/json,image/*");
-        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14)");
-        return connection;
-    }
-
-    private static void activateAccount(Activity activity, String accountName) {
-        selectedAccountName = accountName;
-        activity.getSharedPreferences(PREFS_NAME, 0)
-                .edit()
-                .putString(PREF_SELECTED_ACCOUNT, accountName)
-                .apply();
-
-        if (avatar == null || !sameAccount(accountName, avatarAccountName)) {
-            Bitmap cachedAvatar = readCachedAvatar(activity, accountName);
-            if (cachedAvatar != null) {
-                avatar = cachedAvatar;
-                avatarAccountName = accountName;
-                Logger.printInfo(() -> "Google Photos avatar loaded from disk cache");
-            }
-        }
-    }
-
-    private static void applyAvatar(Activity activity, View root) {
-        Bitmap currentAvatar = avatar;
-        String currentAccount = avatarAccountName;
-        if (currentAvatar == null
-                || currentAccount == null
-                || activity.isFinishing()
-                || activity.isDestroyed()) {
-            return;
-        }
-
-        // Toolbar avatar (og_apd_internal_image_view is an ImageView).
-        int toolbarAvatarId = getResourceId(activity, "og_apd_internal_image_view");
-        if (toolbarAvatarId != 0) {
-            View toolbarAvatar = root.findViewById(toolbarAvatarId);
-            if (toolbarAvatar instanceof ImageView) {
-                updateImageView((ImageView) toolbarAvatar, currentAvatar, currentAccount);
-            }
-        }
-
-        // Account sheet avatar (og_bento_selected_account_avatar is a FrameLayout container;
-        // the actual ImageView is a child of it).
-        int accountSheetContainerId = getResourceId(activity, "og_bento_selected_account_avatar");
-        if (accountSheetContainerId != 0) {
-            View accountSheetContainer = root.findViewById(accountSheetContainerId);
-            if (accountSheetContainer instanceof ImageView) {
-                applyBentoAvatar((ImageView) accountSheetContainer, currentAvatar);
-            } else if (accountSheetContainer instanceof ViewGroup) {
-                ImageView inner = findFirstImageView((ViewGroup) accountSheetContainer);
-                if (inner != null) applyBentoAvatar(inner, currentAvatar);
-            }
-        }
-    }
-
-    private static void prefetchRegisteredAccounts(Activity activity, View root) {
-        Utils.runOnBackgroundThread(() -> {
-            try {
-                AccountManager accountManager = AccountManager.get(activity);
-                Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
-                for (Account acc : accounts) {
-                    Bitmap cached = readCachedAvatar(activity, acc.name);
-                    if (cached == null) {
-                        requestProfileToken(activity, root, acc);
-                    }
-                }
-            } catch (Exception e) {
-                Logger.printException(() -> "Could not prefetch MicroG accounts avatar", e);
-            }
-        });
-    }
-
-    private static final String[] AVAILABLE_ACCOUNT_AVATAR_IDS = new String[] {
-            "account_header_avatar",
-            "onboarding_account_header",
-            "sud_account_avatar",
-            "photos_settings_account_avatar",
-            "photos_settings_account_adapter_avatar",
-            "photos_quotamanagement_account_avatar_menu_item",
-            "ring_avatar",
-            "sheet_avatar",
-            "source_avatar",
-            "og_bento_available_account_avatar",
-            "og_available_account_avatar",
-            "og_bento_header_account_avatar",
-            "og_compact_header_avatar",
-            "og_bento_card_avatar_image"
-    };
-
-    private static void applyAvailableAccountsAvatars(Activity activity, View root) {
-        if (activity.isFinishing() || activity.isDestroyed()) return;
-
-        AccountManager accountManager = AccountManager.get(activity);
-        Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
-        if (accounts.length == 0) return;
-
-        List<View> avatarViews = new ArrayList<>();
-        for (String idName : AVAILABLE_ACCOUNT_AVATAR_IDS) {
-            int id = getResourceId(activity, idName);
-            if (id != 0) {
-                findAllViewsWithId(root, id, avatarViews);
-            }
-        }
-
-        for (View avatarView : avatarViews) {
-            String email = findEmailInViewAndParents(avatarView);
-            Account targetAccount = null;
-            if (email != null) {
-                targetAccount = findAccount(accounts, email);
-            } else if (accounts.length == 1) {
-                targetAccount = accounts[0];
-            }
-
-            if (targetAccount == null) continue;
-
-            Bitmap cachedBmp = readCachedAvatar(activity, targetAccount.name);
-            if (cachedBmp != null) {
-                if (avatarView instanceof ImageView) {
-                    applyBentoAvatar((ImageView) avatarView, cachedBmp);
-                } else if (avatarView instanceof ViewGroup) {
-                    ImageView inner = findFirstImageView((ViewGroup) avatarView);
-                    if (inner != null) applyBentoAvatar(inner, cachedBmp);
-                }
-            } else {
-                requestProfileToken(activity, root, targetAccount);
-            }
-        }
-    }
-
-    private static void findAllViewsWithId(View view, int targetId, List<View> outList) {
-        if (view == null) return;
-        if (view.getId() == targetId) {
-            outList.add(view);
-        }
-        if (view instanceof ViewGroup) {
-            ViewGroup vg = (ViewGroup) view;
-            for (int i = 0; i < vg.getChildCount(); i++) {
-                findAllViewsWithId(vg.getChildAt(i), targetId, outList);
-            }
-        }
-    }
-
-    private static void findAndApplyAccountRowAvatars(Activity activity, View root) {
-        if (activity.isFinishing() || activity.isDestroyed()) return;
-
-        AccountManager accountManager = AccountManager.get(activity);
-        Account[] accounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
-        if (accounts.length == 0) return;
-
-        List<TextView> emailTextViews = new ArrayList<>();
-        findEmailTextViews(root, emailTextViews);
-
-        for (TextView tv : emailTextViews) {
-            String email = extractEmail(tv.getText());
-            if (email == null) email = extractEmail(tv.getContentDescription());
-            if (email == null) continue;
-
-            Account account = findAccount(accounts, email);
-            if (account == null) continue;
-
-            Bitmap bmp = readCachedAvatar(activity, account.name);
-            if (bmp == null) {
-                requestProfileToken(activity, root, account);
-                continue;
-            }
-
-            ViewParent parent = tv.getParent();
-            for (int depth = 0; depth < 4 && parent instanceof ViewGroup; depth++) {
-                ViewGroup row = (ViewGroup) parent;
-                ImageView avatarIv = findSiblingImageView(row, tv);
-                if (avatarIv != null) {
-                    applyBentoAvatar(avatarIv, bmp);
-                    break;
-                }
-                parent = parent.getParent();
-            }
-        }
-    }
-
-    private static void findEmailTextViews(View view, List<TextView> outList) {
-        if (view == null) return;
-        if (view instanceof TextView) {
-            TextView tv = (TextView) view;
-            if (extractEmail(tv.getText()) != null || extractEmail(tv.getContentDescription()) != null) {
-                outList.add(tv);
-            }
-        }
-        if (view instanceof ViewGroup) {
-            ViewGroup vg = (ViewGroup) view;
-            for (int i = 0; i < vg.getChildCount(); i++) {
-                findEmailTextViews(vg.getChildAt(i), outList);
-            }
-        }
-    }
-
-    @Nullable
-    private static ImageView findSiblingImageView(ViewGroup row, View target) {
-        for (int i = 0; i < row.getChildCount(); i++) {
-            View child = row.getChildAt(i);
-            if (child == target) continue;
-            if (child instanceof ImageView) {
-                return (ImageView) child;
-            }
-            if (child instanceof ViewGroup) {
-                ImageView inner = findFirstImageView((ViewGroup) child);
-                if (inner != null) return inner;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Applies the avatar bitmap to the large account-sheet ImageView,
-     * scaled to fit its measured pixel size.
-     */
-    private static void applyBentoAvatar(ImageView imageView, Bitmap bitmap) {
-        int viewSize = Math.min(imageView.getWidth(), imageView.getHeight());
-        Bitmap scaled = (viewSize > 0 && (bitmap.getWidth() != viewSize || bitmap.getHeight() != viewSize))
-                ? Bitmap.createScaledBitmap(bitmap, viewSize, viewSize, true)
-                : bitmap;
-        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        imageView.setImageBitmap(scaled);
-        // Retry after layout in case view wasn't measured yet.
-        imageView.postDelayed(() -> {
-            int sz = Math.min(imageView.getWidth(), imageView.getHeight());
-            if (sz > 0 && sz != scaled.getWidth()) {
-                imageView.setImageBitmap(Bitmap.createScaledBitmap(bitmap, sz, sz, true));
-            } else {
-                imageView.setImageBitmap(scaled);
-            }
-        }, 200);
-    }
-
-    /**
-     * Recursively finds the first ImageView descendant of the given ViewGroup.
-     */
-    @Nullable
-    private static ImageView findFirstImageView(ViewGroup parent) {
-        for (int i = 0; i < parent.getChildCount(); i++) {
-            View child = parent.getChildAt(i);
-            if (child instanceof ImageView) return (ImageView) child;
-            if (child instanceof ViewGroup) {
-                ImageView found = findFirstImageView((ViewGroup) child);
-                if (found != null) return found;
-            }
-        }
-        return null;
-    }
-
-    @Nullable
-    private static Bitmap getCircularBitmap(@Nullable Bitmap src) {
-        if (src == null) return null;
-        int width = src.getWidth();
-        int height = src.getHeight();
-        int size = Math.min(width, height);
-
-        Bitmap output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(output);
-
-        Paint paint = new Paint();
-        paint.setAntiAlias(true);
-        paint.setFilterBitmap(true);
-        paint.setDither(true);
-        paint.setColor(0xFF000000);
-
-        canvas.drawARGB(0, 0, 0, 0);
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint);
-
-        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-        Rect srcRect = new Rect(
-                (width - size) / 2,
-                (height - size) / 2,
-                (width + size) / 2,
-                (height + size) / 2
-        );
-        Rect dstRect = new Rect(0, 0, size, size);
-        canvas.drawBitmap(src, srcRect, dstRect, paint);
-        paint.setXfermode(null);
-
-        Paint ringPaint = new Paint();
-        ringPaint.setAntiAlias(true);
-        ringPaint.setStyle(Paint.Style.STROKE);
-        float strokeWidth = Math.max(2f, size * 0.025f);
-        ringPaint.setStrokeWidth(strokeWidth);
-        ringPaint.setColor(0x25000000);
-        canvas.drawCircle(size / 2f, size / 2f, (size / 2f) - (strokeWidth / 2f), ringPaint);
-
-        return output;
-    }
-
-    private static void updateImageView(ImageView imageView, Bitmap bitmap, String accountName) {
-        // Scale the circular bitmap to exactly fit the view so it never overflows the ring boundary.
-        int viewSize = Math.min(imageView.getWidth(), imageView.getHeight());
-        Bitmap scaled = (viewSize > 0 && (bitmap.getWidth() != viewSize || bitmap.getHeight() != viewSize))
-                ? Bitmap.createScaledBitmap(bitmap, viewSize, viewSize, true)
-                : bitmap;
-
-        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        imageView.setImageBitmap(scaled);
-
-        String previouslyScheduledAccount = SCHEDULED_TOOLBAR_AVATARS.put(imageView, accountName);
-        if (!sameAccount(accountName, previouslyScheduledAccount)) {
-            imageView.postDelayed(() -> imageView.setImageBitmap(scaled), 100);
-            imageView.postDelayed(() -> imageView.setImageBitmap(scaled), 500);
-            imageView.postDelayed(() -> imageView.setImageBitmap(scaled), 1_500);
-        }
-    }
-
-    private static boolean isCurrentAvatar(Bitmap bitmap, String accountName) {
-        return bitmap == avatar
-                && sameAccount(accountName, avatarAccountName)
-                && sameAccount(accountName, selectedAccountName);
-    }
-
-    private static boolean sameAccount(@Nullable String first, @Nullable String second) {
-        return first != null && second != null && first.equalsIgnoreCase(second);
-    }
-
-    @Nullable
-    private static Bitmap readCachedAvatar(Activity activity, String accountName) {
-        File cacheFile = getCacheFile(activity, accountName);
-        if (!cacheFile.isFile()) return null;
-        if (System.currentTimeMillis() - cacheFile.lastModified() > CACHE_MAX_AGE_MILLIS) {
-            //noinspection ResultOfMethodCallIgnored
-            cacheFile.delete();
-            return null;
-        }
-
-        try (InputStream stream = new FileInputStream(cacheFile)) {
-            return getCircularBitmap(BitmapFactory.decodeStream(stream));
-        } catch (Exception exception) {
-            Logger.printException(() -> "Could not read the cached Google account avatar", exception);
-            return null;
-        }
-    }
-
-    private static void writeCachedAvatar(Activity activity, String accountName, Bitmap bitmap) {
-        File cacheFile = getCacheFile(activity, accountName);
-        try (FileOutputStream output = new FileOutputStream(cacheFile)) {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
-        } catch (Exception exception) {
-            Logger.printException(() -> "Could not cache the Google account avatar", exception);
-        }
-    }
-
-    private static File getCacheFile(Activity activity, String accountName) {
-        return new File(
-                activity.getCacheDir(),
-                CACHE_FILE_PREFIX + hashAccountName(accountName) + ".png"
-        );
-    }
-
-    private static String hashAccountName(String accountName) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = digest.digest(
-                    accountName.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder(bytes.length * 2);
-            for (byte value : bytes) {
-                hex.append(String.format(Locale.ROOT, "%02x", value & 0xff));
-            }
-            return hex.toString();
-        } catch (Exception exception) {
-            // SHA-256 is required by Android; keep a deterministic fallback for completeness.
-            return Integer.toHexString(accountName.toLowerCase(Locale.ROOT).hashCode());
-        }
+    private static boolean sameEmail(@Nullable String a, @Nullable String b) {
+        return a != null && b != null && a.equalsIgnoreCase(b);
     }
 }
