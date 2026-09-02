@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.12.0...v1.12.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **googlephotos:** enable complete Maps SDK multi-DEX routing and MicroG-RE VTM support ([c6ce1b5](https://github.com/Akash-Sriram/De-Vanced/commit/c6ce1b5b1ec6a8aae48a914617fbd2f901165e03))
+
 # [1.12.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.11.0...v1.12.0) (2026-08-31)
 
 
