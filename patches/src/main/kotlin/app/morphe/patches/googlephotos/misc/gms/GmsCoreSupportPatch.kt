@@ -15,6 +15,7 @@ import app.morphe.patches.shared.misc.settings.preference.PreferenceScreenPrefer
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
+import app.morphe.util.findMutableMethodOf
 import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstInstructionOrThrow
 import app.morphe.util.returnEarly
@@ -28,9 +29,36 @@ val gmsCoreSupportPatch = gmsCoreSupportPatch(
     extensionPatch = sharedExtensionPatch,
     gmsCoreSupportResourcePatchFactory = ::gmsCoreSupportResourcePatch,
     executeBlock = {
-        // 1) Photos' bundled Google Play Services availability check rejects GmsCore's signature.
-        // Returning SUCCESS keeps account/profile initialization and Maps-backed views usable.
-        IsGooglePlayServicesAvailableFingerprint.methodOrNull?.returnEarly(0)
+        // 1) Photos has multiple bundled Google Play Services availability and signature checks across all DEX files.
+        // Hook ALL methods with signature (Context, int) -> int, (Context) -> int, and signature verification.
+        classDefForEach { classDef ->
+            val mutableClass by lazy { mutableClassDefBy(classDef) }
+
+            classDef.methods.forEach { method ->
+                val isAvailabilityCheck = method.returnType == "I" &&
+                    (
+                        (method.parameterTypes.size == 2 && method.parameterTypes[0] == "Landroid/content/Context;" && method.parameterTypes[1] == "I") ||
+                        (method.parameterTypes.size == 1 && method.parameterTypes[0] == "Landroid/content/Context;")
+                    )
+                if (isAvailabilityCheck) {
+                    val impl = method.implementation
+                    if (impl != null && impl.instructions.any { instr ->
+                        val str = (instr.getReference<com.android.tools.smali.dexlib2.iface.reference.StringReference>())?.string
+                        str?.contains("android.gms") == true || str?.contains("GooglePlayServices") == true
+                    }) {
+                        mutableClass.findMutableMethodOf(method).returnEarly(0)
+                    }
+                }
+
+                val isSignatureCheck = method.returnType == "Z" &&
+                    method.parameterTypes.size in 1..2 &&
+                    method.parameterTypes[0] == "Landroid/content/pm/PackageInfo;"
+                if (isSignatureCheck) {
+                    mutableClass.findMutableMethodOf(method).returnEarly(true)
+                }
+            }
+        }
+
 
         // 2) Disable the AccountValidityMonitor check that runs on resume.
         AccountValidityMonitorCheckFingerprint.method.addInstruction(

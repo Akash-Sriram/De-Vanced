@@ -82,7 +82,7 @@ fun gmsCoreSupportPatch(
     )
 
     execute {
-        fun transformStringReferences(transform: (str: String) -> String?) = getAllClassesWithStrings().forEach {
+        fun transformStringReferences(transform: (str: String) -> String?) = classDefForEach {
             val mutableClass by lazy {
                 mutableClassDefBy(it)
             }
@@ -513,8 +513,14 @@ private object Constants {
         "com.google.android.gms.phenotype",
         "com.google.android.gsf.gservices",
         "com.google.settings",
+        "com.google.android.gms.vtm.provider",
+        "org.microg.gms.vtm.provider",
+        "com.google.android.gms.maps_dynamite",
+        "com.google.android.gms.maps_core_dynamite",
+        "com.google.android.gms.maps_legacy_dynamite",
     )
 }
+
 
 /**
  * Abstract resource patch that allows Google apps to run without root and under a different package name
