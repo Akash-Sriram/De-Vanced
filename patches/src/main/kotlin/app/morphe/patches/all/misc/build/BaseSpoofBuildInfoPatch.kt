@@ -49,7 +49,21 @@ fun baseSpoofBuildInfoPatch(buildInfoSupplier: () -> BuildInfo) = bytecodePatch 
 
     dependsOn(
         transformInstructionsPatch(
-            filterMap = filterMap@{ _, _, instruction, instructionIndex ->
+            filterMap = filterMap@{ classDef, _, instruction, instructionIndex ->
+                val type = classDef.type
+                // Do not spoof Build properties in media, video player, and codec classes
+                // so OEM hardware decoders (e.g. Samsung Exynos) function correctly.
+                if (type.startsWith("Landroidx/media") ||
+                    type.startsWith("Lcom/google/android/exoplayer2") ||
+                    type.startsWith("Lcom/google/android/apps/photos/videoplayer") ||
+                    type.startsWith("Lcom/google/android/apps/photos/photoeditor") ||
+                    type.contains("/media/") ||
+                    type.contains("/video/") ||
+                    type.contains("/videoplayer/") ||
+                    type.contains("/codec/")) {
+                    return@filterMap null
+                }
+
                 val reference = instruction.getReference<FieldReference>() ?: return@filterMap null
                 if (reference.definingClass != BUILD_CLASS_DESCRIPTOR) return@filterMap null
 

@@ -5,6 +5,7 @@
 package app.morphe.patches.googlephotos.misc.features
 
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.patches.all.misc.transformation.transformInstructionsPatch
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
@@ -15,7 +16,11 @@ import app.morphe.util.getReference
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21c
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction21c
+import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction3rc
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 
@@ -30,6 +35,39 @@ val spoofFeaturesPatch = bytecodePatch(
     dependsOn(
         spoofBuildInfoPatch,
         app.morphe.patches.googlephotos.misc.extension.sharedExtensionPatch,
+        transformInstructionsPatch(
+            filterMap = filterMap@{ classDef, _, instruction, instructionIndex ->
+                if (classDef.type.startsWith("Lapp/morphe/extension/")) return@filterMap null
+                if (instruction.opcode != Opcode.INVOKE_VIRTUAL && instruction.opcode != Opcode.INVOKE_VIRTUAL_RANGE) return@filterMap null
+
+                val methodRef = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@filterMap null
+
+                if (methodRef.definingClass == "Landroid/media/MediaFormat;" &&
+                    methodRef.name == "setInteger" &&
+                    methodRef.returnType == "V" &&
+                    methodRef.parameterTypes == listOf("Ljava/lang/String;", "I")) {
+                    return@filterMap instructionIndex to instruction
+                }
+
+                null
+            },
+            transform = transform@{ mutableMethod, (index, instruction) ->
+                val args = when (instruction) {
+                    is Instruction35c -> with(instruction) {
+                        arrayOf(registerC, registerD, registerE, registerF, registerG)
+                            .take(registerCount).joinToString(", ") { "v$it" }
+                    }
+                    is Instruction3rc -> with(instruction) {
+                        (startRegister until startRegister + registerCount).joinToString(", ") { "v$it" }
+                    }
+                    else -> return@transform
+                }
+                mutableMethod.replaceInstruction(
+                    index,
+                    "invoke-static { $args }, Lapp/morphe/extension/shared/patches/ExynosVideoFix;->setInteger(Landroid/media/MediaFormat;Ljava/lang/String;I)V",
+                )
+            },
+        ),
     )
 
     val featuresToEnable by stringsOption(
@@ -50,16 +88,6 @@ val spoofFeaturesPatch = bytecodePatch(
             "com.google.android.feature.PIXEL_2020_EXPERIENCE",
             "com.google.android.feature.PIXEL_2021_MIDYEAR_EXPERIENCE",
             "com.google.android.feature.PIXEL_2021_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2022_MIDYEAR_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2022_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2023_MIDYEAR_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2023_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2024_MIDYEAR_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2024_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2025_MIDYEAR_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2025_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2026_MIDYEAR_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2026_EXPERIENCE",
         ),
         title = "Features to enable",
         description = "Google Pixel exclusive features to enable.",

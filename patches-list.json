@@ -31,6 +31,30 @@
       "options": []
     },
     {
+      "name": "Debuggable",
+      "description": "Enables android:debuggable in AndroidManifest.xml for debugging and profiling.",
+      "use": false,
+      "dependencies": [],
+      "compatiblePackages": {
+        "com.google.android.apps.photos": null
+      },
+      "compatibility": [
+        {
+          "name": "Google Photos",
+          "packageName": "com.google.android.apps.photos",
+          "description": null,
+          "appIconColor": 16531260,
+          "targets": [
+            {
+              "version": "",
+              "experimental": false
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Enable DCIM folders backup control",
       "description": "Disables always on backup for the Camera and other DCIM folders, allowing you to control backup for each folder individually. This will make the app default to having no folders backed up.",
       "use": true,
@@ -111,6 +135,7 @@
       "description": "Spoofs the device to enable Google Pixel exclusive features, including unlimited storage and modern UI.",
       "use": true,
       "dependencies": [
+        "BytecodePatch",
         "BytecodePatch",
         "BytecodePatch"
       ],

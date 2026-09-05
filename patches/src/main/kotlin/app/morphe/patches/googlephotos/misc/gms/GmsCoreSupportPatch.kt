@@ -82,6 +82,30 @@ val gmsCoreSupportPatch = gmsCoreSupportPatch(
 
             replaceInstruction(clearSelectedAccountIndex, "invoke-virtual {p0}, $accountHandlerClass->p()V")
         }
+
+        // 4) Relax MDD and WorkManager network constraints from UNMETERED to CONNECTED.
+        classDefForEach { classDef ->
+            val mutableClass by lazy { mutableClassDefBy(classDef) }
+
+            classDef.methods.forEach classLoop@{ method ->
+                val implementation = method.implementation ?: return@classLoop
+                val mutableMethod by lazy { mutableClass.findMutableMethodOf(method) }
+
+                implementation.instructions.forEachIndexed { index, instruction ->
+                    val fieldRef = (instruction as? com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction)?.reference as? com.android.tools.smali.dexlib2.iface.reference.FieldReference
+                        ?: return@forEachIndexed
+
+                    if (fieldRef.definingClass == "Landroidx/work/NetworkType;" &&
+                        (fieldRef.name == "UNMETERED" || fieldRef.name == "NOT_ROAMING")) {
+                        val register = (instruction as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA
+                        mutableMethod.replaceInstruction(
+                            index,
+                            "sget-object v$register, Landroidx/work/NetworkType;->CONNECTED:Landroidx/work/NetworkType;",
+                        )
+                    }
+                }
+            }
+        }
     },
 ) {
     compatibleWith(AppCompatibilities.GOOGLE_PHOTOS)

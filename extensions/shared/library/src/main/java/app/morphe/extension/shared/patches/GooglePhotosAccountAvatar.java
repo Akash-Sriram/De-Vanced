@@ -85,7 +85,7 @@ public final class GooglePhotosAccountAvatar {
     );
 
     private static final Map<String, Bitmap> MEMORY_AVATARS = new ConcurrentHashMap<>();
-    private static final Set<String> FETCHING_ACCOUNTS = ConcurrentHashMap.newKeySet();
+    private static final Set<String> FETCHING_ACCOUNTS = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
     private static final AtomicBoolean WINDOW_SCAN_ERROR_LOGGED = new AtomicBoolean();
     private static final Set<View> OBSERVED_WINDOW_ROOTS = Collections.newSetFromMap(new WeakHashMap<>());
     private static final Set<View> WATCHED_TOOLBAR_VIEWS = Collections.newSetFromMap(new WeakHashMap<>());
