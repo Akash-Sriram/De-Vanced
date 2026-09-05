@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.12.1...v1.13.0) (2026-09-05)
+
+
+### Features
+
+* **googlephotos:** stabilize non-root support with 2021 feature flags, avatar bridge & media fixes ([507c805](https://github.com/Akash-Sriram/De-Vanced/commit/507c805de8078257006dc2a167e688a8188fa8ab))
+
 ## [1.12.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.12.0...v1.12.1) (2026-09-02)
 
 
