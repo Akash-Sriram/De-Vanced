@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.13.0...v1.14.0) (2026-09-06)
+
+
+### Features
+
+* **photos:** redesign phenotype flag manager with M3 floating modal, live GMS Flags API sync, and unified dialogs ([1b38d88](https://github.com/Akash-Sriram/De-Vanced/commit/1b38d88d78fd417ebb3579fb10c63d84638cf84d))
+
 # [1.13.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.12.1...v1.13.0) (2026-09-05)
 
 
