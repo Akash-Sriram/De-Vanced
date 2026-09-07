@@ -109,3 +109,17 @@ internal object FrictionlessEligibilityFingerprint : Fingerprint(
             method.referencesIntLiteral(-1)
     },
 )
+
+/**
+ * Matches `Lahwe;->a()V` — the CurrentLocationMixin method that requests device location.
+ */
+internal object CurrentLocationMixinFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "V",
+    parameters = listOf(),
+    custom = { method, classDef ->
+        classDef.hasMethodReferencingString("CurrentLocationMixin") &&
+            method.name == "a"
+    },
+)
+

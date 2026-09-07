@@ -20,6 +20,7 @@ import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstInstructionOrThrow
 import app.morphe.util.returnEarly
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 @Suppress("unused")
 val gmsCoreSupportPatch = gmsCoreSupportPatch(
@@ -105,6 +106,18 @@ val gmsCoreSupportPatch = gmsCoreSupportPatch(
                     }
                 }
             }
+        }
+
+        // 5) Hook CurrentLocationMixin.a() to immediately obtain device location and animate map camera.
+        CurrentLocationMixinFingerprint.method.apply {
+            addInstruction(
+                0,
+                "invoke-static {p0}, Lapp/morphe/extension/shared/patches/GmsCoreSupportPatch;->handleCurrentLocation(Ljava/lang/Object;)V",
+            )
+            addInstruction(
+                1,
+                "return-void",
+            )
         }
     },
 ) {
