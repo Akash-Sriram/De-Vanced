@@ -1,3 +1,10 @@
+## [1.14.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.14.0...v1.14.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **googlephotos:** fix Map Explore current location FAB and persistent location puck ([50386ec](https://github.com/Akash-Sriram/De-Vanced/commit/50386ecc07672f1ca1eebed30855b81642748955))
+
 # [1.14.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.13.0...v1.14.0) (2026-09-06)
 
 
