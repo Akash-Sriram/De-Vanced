@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.14.1...v1.15.0) (2026-09-10)
+
+
+### Features
+
+* **photos:** sync official phenotype flags and optimize flag manager UI ([5cf6026](https://github.com/Akash-Sriram/De-Vanced/commit/5cf60269162a95f8a76a39d42168ec6d274623de))
+
 ## [1.14.1](https://github.com/Akash-Sriram/De-Vanced/compare/v1.14.0...v1.14.1) (2026-09-07)
 
 
