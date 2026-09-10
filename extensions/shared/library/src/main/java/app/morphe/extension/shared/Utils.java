@@ -427,33 +427,14 @@ public class Utils {
     }
 
     public static void seedPhenotypeEarly(Context context) {
+        try {
+            app.morphe.extension.shared.patches.PhenotypeSeedData.ensureSeeded(context);
+        } catch (Throwable ignored) {}
     }
 
     public static void seedPhenotypeFlags(Context context) {
         try {
-            android.content.SharedPreferences prefs = context.getSharedPreferences("com.google.android.apps.photos.phenotype", Context.MODE_PRIVATE);
-            if (!prefs.contains("_morphe_flags_seeded")) {
-                android.content.SharedPreferences.Editor editor = prefs.edit();
-                editor.putBoolean("_morphe_flags_seeded", true);
-
-                // Modern UI presets
-                editor.putBoolean("2675", true);
-                editor.putBoolean("2892", true);
-                editor.putLong("3013", 1L);
-                editor.putBoolean("3023", true);
-                editor.putBoolean("3024", true);
-                editor.putBoolean("3026", true);
-                editor.putBoolean("3606", true);
-                editor.putBoolean("3611", true);
-                editor.putBoolean("4306", true);
-                editor.putBoolean("4311", true);
-                editor.putBoolean("45732792", true);
-                editor.putBoolean("45743215", true);
-                editor.putLong("45762698", 2L);
-                editor.putLong("45802110", 2L);
-
-                editor.apply();
-            }
+            app.morphe.extension.shared.patches.PhenotypeSeedData.ensureSeeded(context);
         } catch (Throwable ignored) {}
     }
 

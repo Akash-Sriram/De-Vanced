@@ -608,6 +608,8 @@ public class PhenotypeFlagManager {
         root.addView(chipRow);
 
         final int[] activeTab = new int[] { TAB_SUGGESTIONS };
+        final int PAGE_SIZE = 50;
+        final int[] displayedCount = new int[] { PAGE_SIZE };
         final Button[] tabButtons = new Button[2];
         final String[] tabLabels = new String[] { "Suggestions", "All" };
 
@@ -811,78 +813,114 @@ public class PhenotypeFlagManager {
                 }
 
             } else {
-                List<String> keys = new ArrayList<>(all.keySet());
-                Collections.sort(keys);
-                int matched = 0;
+                List<String> allKeys = new ArrayList<>(all.keySet());
+                Collections.sort(allKeys);
+                List<String> matchedKeys = new ArrayList<>();
 
-                for (String key : keys) {
+                for (String key : allKeys) {
                     if (SEEDED_MARKER.equals(key) || CACHED_RECIPES_KEY.equals(key)) continue;
 
                     Object val = all.get(key);
                     if (val == null) continue;
-
-                    boolean isBool = val instanceof Boolean;
 
                     if (!query.isEmpty() &&
                         !key.toLowerCase().contains(query) &&
                         !String.valueOf(val).toLowerCase().contains(query)) {
                         continue;
                     }
-                    matched++;
-
-                    LinearLayout card = new LinearLayout(activity);
-                    card.setOrientation(LinearLayout.HORIZONTAL);
-                    card.setGravity(Gravity.CENTER_VERTICAL);
-                    int cPad = (int) (14 * density);
-                    card.setPadding(cPad, cPad, cPad, cPad);
-                    LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                    cardLp.setMargins(0, 0, 0, (int) (10 * density));
-                    card.setLayoutParams(cardLp);
-                    card.setBackground(createRoundedDrawable(activity, M3_CARD_BG, 16));
-
-                    LinearLayout textCol = new LinearLayout(activity);
-                    textCol.setOrientation(LinearLayout.VERTICAL);
-                    LinearLayout.LayoutParams colLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-                    textCol.setLayoutParams(colLp);
-
-                    TextView tvKey = new TextView(activity);
-                    tvKey.setText(key);
-                    tvKey.setTextSize(14);
-                    tvKey.setTextColor(M3_TEXT_PRIMARY);
-                    tvKey.setTypeface(null, Typeface.BOLD);
-                    textCol.addView(tvKey);
-
-                    TextView tvVal = new TextView(activity);
-                    tvVal.setText("Value: " + val);
-                    tvVal.setTextSize(12);
-                    tvVal.setTextColor(M3_TEXT_SECONDARY);
-                    tvVal.setPadding(0, (int) (2 * density), 0, 0);
-                    textCol.addView(tvVal);
-                    card.addView(textCol);
-
-                    if (isBool) {
-                        Switch sw = new Switch(activity);
-                        sw.setChecked((Boolean) val);
-                        sw.setOnCheckedChangeListener((btn, isChecked) -> {
-                            prefs.edit().putBoolean(key, isChecked).apply();
-                            refreshHolder[0].run();
-                        });
-                        card.addView(sw);
-                    } else {
-                        TextView btnEdit = new TextView(activity);
-                        btnEdit.setText("✏️");
-                        btnEdit.setTextSize(16);
-                        btnEdit.setPadding((int) (8 * density), (int) (8 * density), (int) (8 * density), (int) (8 * density));
-                        card.addView(btnEdit);
-                        card.setOnClickListener(v -> showEditFlagDialog(activity, prefs, key, refreshHolder[0]));
-                    }
-
-                    listContainer.addView(card);
+                    matchedKeys.add(key);
                 }
 
-                if (matched == 0) {
-                    renderEmpty(activity, listContainer, "No flags found.", density);
+                int totalMatched = matchedKeys.size();
+
+                if (totalMatched == 0) {
+                    renderEmpty(activity, listContainer, query.isEmpty() ? "No flags found." : "No flags matched \"" + query + "\".", density);
+                } else {
+                    int currentLimit = Math.min(displayedCount[0], totalMatched);
+
+                    // Counter header
+                    TextView tvCountHeader = new TextView(activity);
+                    tvCountHeader.setText("Showing " + currentLimit + " of " + totalMatched + " flags");
+                    tvCountHeader.setTextSize(12);
+                    tvCountHeader.setTextColor(M3_TEXT_SECONDARY);
+                    tvCountHeader.setTypeface(null, Typeface.BOLD);
+                    tvCountHeader.setPadding((int) (4 * density), 0, 0, (int) (8 * density));
+                    listContainer.addView(tvCountHeader);
+
+                    for (int k = 0; k < currentLimit; k++) {
+                        String key = matchedKeys.get(k);
+                        Object val = all.get(key);
+                        boolean isBool = val instanceof Boolean;
+
+                        LinearLayout card = new LinearLayout(activity);
+                        card.setOrientation(LinearLayout.HORIZONTAL);
+                        card.setGravity(Gravity.CENTER_VERTICAL);
+                        int cPad = (int) (14 * density);
+                        card.setPadding(cPad, cPad, cPad, cPad);
+                        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        cardLp.setMargins(0, 0, 0, (int) (10 * density));
+                        card.setLayoutParams(cardLp);
+                        card.setBackground(createRoundedDrawable(activity, M3_CARD_BG, 16));
+
+                        LinearLayout textCol = new LinearLayout(activity);
+                        textCol.setOrientation(LinearLayout.VERTICAL);
+                        LinearLayout.LayoutParams colLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+                        textCol.setLayoutParams(colLp);
+
+                        TextView tvKey = new TextView(activity);
+                        tvKey.setText(key);
+                        tvKey.setTextSize(14);
+                        tvKey.setTextColor(M3_TEXT_PRIMARY);
+                        tvKey.setTypeface(null, Typeface.BOLD);
+                        textCol.addView(tvKey);
+
+                        TextView tvVal = new TextView(activity);
+                        tvVal.setText("Value: " + val);
+                        tvVal.setTextSize(12);
+                        tvVal.setTextColor(M3_TEXT_SECONDARY);
+                        tvVal.setPadding(0, (int) (2 * density), 0, 0);
+                        textCol.addView(tvVal);
+                        card.addView(textCol);
+
+                        if (isBool) {
+                            Switch sw = new Switch(activity);
+                            sw.setChecked((Boolean) val);
+                            sw.setOnCheckedChangeListener((btn, isChecked) -> {
+                                prefs.edit().putBoolean(key, isChecked).apply();
+                                tvVal.setText("Value: " + isChecked);
+                            });
+                            card.addView(sw);
+                        } else {
+                            TextView btnEdit = new TextView(activity);
+                            btnEdit.setText("✏️");
+                            btnEdit.setTextSize(16);
+                            btnEdit.setPadding((int) (8 * density), (int) (8 * density), (int) (8 * density), (int) (8 * density));
+                            card.addView(btnEdit);
+                            card.setOnClickListener(v -> showEditFlagDialog(activity, prefs, key, refreshHolder[0]));
+                        }
+
+                        listContainer.addView(card);
+                    }
+
+                    if (currentLimit < totalMatched) {
+                        int remaining = totalMatched - currentLimit;
+                        Button btnLoadMore = new Button(activity);
+                        btnLoadMore.setText("Load More (+" + Math.min(PAGE_SIZE, remaining) + ") · " + remaining + " remaining");
+                        btnLoadMore.setTextSize(13);
+                        btnLoadMore.setTypeface(null, Typeface.BOLD);
+                        btnLoadMore.setTextColor(M3_PRIMARY);
+                        btnLoadMore.setBackground(createRoundedDrawable(activity, M3_CARD_BG, 16));
+                        LinearLayout.LayoutParams lmParams = new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, (int) (44 * density));
+                        lmParams.setMargins(0, (int) (4 * density), 0, (int) (12 * density));
+                        btnLoadMore.setLayoutParams(lmParams);
+                        btnLoadMore.setOnClickListener(v -> {
+                            displayedCount[0] += PAGE_SIZE;
+                            refreshHolder[0].run();
+                        });
+                        listContainer.addView(btnLoadMore);
+                    }
                 }
             }
         };
@@ -900,6 +938,8 @@ public class PhenotypeFlagManager {
             final int index = i;
             tabButtons[i].setOnClickListener(v -> {
                 activeTab[0] = index;
+                displayedCount[0] = PAGE_SIZE;
+                contentScroll.scrollTo(0, 0);
                 refreshUi.run();
             });
         }
@@ -909,7 +949,11 @@ public class PhenotypeFlagManager {
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { refreshUi.run(); }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                displayedCount[0] = PAGE_SIZE;
+                contentScroll.scrollTo(0, 0);
+                refreshUi.run();
+            }
             @Override public void afterTextChanged(Editable s) {}
         });
 
