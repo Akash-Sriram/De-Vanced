@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.15.0...v1.16.0) (2026-09-11)
+
+
+### Features
+
+* **photos:** embed clean official phenotype flags with dynamic account sync and early application hook ([cb6c752](https://github.com/Akash-Sriram/De-Vanced/commit/cb6c7520e770148b26b5a80634bd991d3c44e8a2))
+
 # [1.15.0](https://github.com/Akash-Sriram/De-Vanced/compare/v1.14.1...v1.15.0) (2026-09-10)
 
 
