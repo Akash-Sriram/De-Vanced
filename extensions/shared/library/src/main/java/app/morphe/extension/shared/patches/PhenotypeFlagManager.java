@@ -64,7 +64,7 @@ public class PhenotypeFlagManager {
 
     private static final String PREF_NAME = "com.google.android.apps.photos.phenotype";
     private static final String MORPHE_SETTINGS_PILL_TAG = "morphe_phenotype_settings_pill";
-    private static final String SEEDED_MARKER = "_morphe_flags_seeded";
+    public static final String SEEDED_MARKER = "_morphe_flags_seeded";
     private static final String CACHED_RECIPES_KEY = "_morphe_cached_live_recipes_json";
     private static final String API_BASE_URL = "https://api.polodarb.com/gmsflags/v1";
 
@@ -1199,22 +1199,31 @@ public class PhenotypeFlagManager {
             showExportDialog(activity, prefs);
         }));
 
-        items.add(new OptionItem("⚡", "Reset Recommendations", "Restore baseline curated feature toggles", () -> {
+        items.add(new OptionItem("⚡", "Reset Recommendations", "Restore default recipe toggles without wiping flags", () -> {
             loadDefaultBaselineRecipes();
-            SharedPreferences.Editor editor = prefs.edit().clear().putBoolean(SEEDED_MARKER, true);
+            if (prefs.getAll().size() < 500) {
+                PhenotypeSeedData.restoreOfficialFlags(activity, prefs);
+            }
+            SharedPreferences.Editor editor = prefs.edit();
             for (FeatureRecipe recipe : CURATED_RECIPES) {
                 for (Map.Entry<String, Object> entry : recipe.flags.entrySet()) {
                     applyEntry(editor, entry.getKey(), entry.getValue());
                 }
             }
-            editor.apply();
-            Toast.makeText(activity, "Default recommendations restored!", Toast.LENGTH_SHORT).show();
+            editor.putBoolean(SEEDED_MARKER, true).apply();
+            Toast.makeText(activity, "Default recommendations restored (" + prefs.getAll().size() + " total flags)!", Toast.LENGTH_SHORT).show();
             refreshUi.run();
         }));
 
-        items.add(new OptionItem("🗑️", "Clear All Overrides", "Remove all active flag overrides", () -> {
-            prefs.edit().clear().putBoolean(SEEDED_MARKER, true).apply();
-            Toast.makeText(activity, "All flags cleared", Toast.LENGTH_SHORT).show();
+        items.add(new OptionItem("🏛️", "Restore Official Flags", "Re-seed all 2,493 flags from official snapshot", () -> {
+            int count = PhenotypeSeedData.restoreOfficialFlags(activity, prefs);
+            Toast.makeText(activity, "✓ Restored " + count + " official flags!", Toast.LENGTH_SHORT).show();
+            refreshUi.run();
+        }));
+
+        items.add(new OptionItem("🗑️", "Revert All to Official", "Reset all flags back to official snapshot", () -> {
+            int count = PhenotypeSeedData.restoreOfficialFlags(activity, prefs);
+            Toast.makeText(activity, "Reverted all flags to official baseline (" + count + " flags)", Toast.LENGTH_SHORT).show();
             refreshUi.run();
         }));
 

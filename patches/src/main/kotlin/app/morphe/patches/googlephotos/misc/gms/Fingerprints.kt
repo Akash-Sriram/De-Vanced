@@ -5,6 +5,7 @@
 package app.morphe.patches.googlephotos.misc.gms
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patches.googlephotos.misc.gms.Constants.PHOTOS_APPLICATION_CLASS_TYPE
 import app.morphe.patches.googlephotos.misc.gms.Constants.PHOTOS_MAIN_ACTIVITY_CLASS_TYPE
 import app.morphe.util.getReference
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -14,6 +15,13 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+
+internal object PhotosApplicationOnCreateFingerprint : Fingerprint(
+    definingClass = PHOTOS_APPLICATION_CLASS_TYPE,
+    name = "onCreate",
+    returnType = "V",
+    parameters = listOf(),
+)
 
 internal object HomeActivityOnCreateFingerprint : Fingerprint(
     definingClass = PHOTOS_MAIN_ACTIVITY_CLASS_TYPE,

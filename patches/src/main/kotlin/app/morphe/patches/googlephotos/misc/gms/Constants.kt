@@ -10,5 +10,8 @@ internal object Constants {
 
     const val PHOTOS_MAIN_ACTIVITY_CLASS_TYPE =
         "Lcom/google/android/apps/photos/home/HomeActivity;"
+
+    const val PHOTOS_APPLICATION_CLASS_TYPE =
+        "Lcom/google/android/apps/photos/PhotosRoot_Application;"
 }
 
